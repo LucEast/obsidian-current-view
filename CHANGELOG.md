@@ -1,3 +1,11 @@
+## [1.0.1](https://github.com/LucEast/obsidian-current-view/compare/1.0.0...1.0.1) (2025-05-17)
+
+
+### Bug Fixes
+
+* fixed workflow ([73ad666](https://github.com/LucEast/obsidian-current-view/commit/73ad666fedf55fb647a53ec42bce8d879df571ff))
+* fixed workflow ([61c518f](https://github.com/LucEast/obsidian-current-view/commit/61c518f057cbf615a126d65b6670623fb34e9f6a))
+
 # 1.0.0 (2025-05-17)
 
 
