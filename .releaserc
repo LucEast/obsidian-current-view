@@ -1,0 +1,33 @@
+{
+  "branches": ["main"],
+  "tagFormat": "${version}",
+  "plugins": [
+    "@semantic-release/commit-analyzer",
+    "@semantic-release/release-notes-generator",
+    "@semantic-release/changelog",
+    "@semantic-release/npm",
+    ["@semantic-release/github", {
+      "assets": [
+        {
+          "path": "CHANGELOG.md",
+          "label": "Changelog"
+        },
+        {
+          "path": "main.js",
+          "label": "main.js"
+        },
+        {
+          "path": "manifest.json",
+          "label": "manifest.json"
+        },
+        {
+          "path": "style.css",
+          "label": "style.css"
+        }
+      ]
+    }],
+    ["@semantic-release/git", {
+      "message": "chore(release): ${nextRelease.version} [skip ci]\n\n${nextRelease.notes}"
+    }]
+  ]
+}
