@@ -17,6 +17,7 @@ changelogFile: CHANGELOG.md
 # Automatische Commit-Nachricht für den Changelog und Versions-Updates
 git:
   assets:
-    - CHANGELOG.md
-    - package.json
+    - main.js
+    - manifest.json
+    - style.css
   message: 'chore(release): ${nextRelease.version} [skip ci]'
