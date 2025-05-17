@@ -1,0 +1,14 @@
+name: Design Feedback
+description: Share your thoughts on the design, layout or feel
+labels: ["kind/design", "feedback"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Not everything is code – visuals matter! Please share what you think could be improved visually or interactively.
+
+  - type: textarea
+    id: feedback
+    attributes:
+      label: What's your feedback?
+      placeholder: e.g., "On mobile the text is a bit too small."
