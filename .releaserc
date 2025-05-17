@@ -21,8 +21,8 @@
           "label": "manifest.json"
         },
         {
-          "path": "style.css",
-          "label": "style.css"
+          "path": "styles.css",
+          "label": "styles.css"
         }
       ]
     }],
