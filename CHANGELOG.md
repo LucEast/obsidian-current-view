@@ -1,3 +1,10 @@
+## [1.0.4](https://github.com/LucEast/obsidian-current-view/compare/1.0.3...1.0.4) (2025-05-18)
+
+
+### Bug Fixes
+
+* added CHANGELOG.md to .releaserc ([cdb56d1](https://github.com/LucEast/obsidian-current-view/commit/cdb56d12d340cf5ad6b7af7ced551e820671a2f5))
+
 ## [1.0.1](https://github.com/LucEast/obsidian-current-view/compare/1.0.0...1.0.1) (2025-05-17)
 
 
