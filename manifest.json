@@ -1,13 +1,13 @@
 {
-  "id": "obsidian-current-view",
-  "name": "Current View",
-  "version": "1.0.0",
-  "minAppVersion": "0.15.0",
+	"id": "obsidian-current-view",
+	"name": "Current View",
+	"version": "1.0.3",
+	"minAppVersion": "0.15.0",
 	"description": "Automatically set the view mode (Reading, Live Preview, Source) for notes in Obsidian using folder rules, file patterns, or frontmatter.",
-  "author": "Lucas Ostmann",
-  "authorUrl": "https://github.com/LucEast",
-  "fundingUrl": {
-    "GitHub Sponsor": "https://github.com/sponsors/LucEast"
-  },
-  "isDesktopOnly": false
+	"author": "Lucas Ostmann",
+	"authorUrl": "https://github.com/LucEast",
+	"fundingUrl": {
+		"GitHub Sponsor": "https://github.com/sponsors/LucEast"
+	},
+	"isDesktopOnly": false
 }
