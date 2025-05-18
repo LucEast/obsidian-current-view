@@ -1,3 +1,10 @@
+## [1.0.5](https://github.com/LucEast/obsidian-current-view/compare/1.0.4...1.0.5) (2025-05-18)
+
+
+### Bug Fixes
+
+* changed id to respect Developer policies ([ac9b721](https://github.com/LucEast/obsidian-current-view/commit/ac9b721db97b111eca5717e429a204bbb691b753))
+
 ## [1.0.4](https://github.com/LucEast/obsidian-current-view/compare/1.0.3...1.0.4) (2025-05-18)
 
 
