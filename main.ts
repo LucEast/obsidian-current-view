@@ -258,7 +258,7 @@ class ViewModeByFrontmatterSettingTab extends PluginSettingTab {
 
     const createHeader = (text: string) => containerEl.createEl("h2", { text });
 
-    createHeader("General settings");
+    createHeader("Current View");
 
     const generalSettingsText = document.createDocumentFragment();
     generalSettingsText.append(
