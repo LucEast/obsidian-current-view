@@ -1,6 +1,7 @@
 {
 	"name": "obsidian-current-view",
 	"version": "1.0.0",
+	"private": true,
 	"description": "Automatically set the view mode (Reading, Live Preview, Source) for notes in Obsidian using folder rules, file patterns, or frontmatter.",
 	"main": "main.js",
 	"scripts": {
@@ -20,5 +21,8 @@
 		"obsidian": "latest",
 		"tslib": "2.4.0",
 		"typescript": "4.7.4"
+	},
+	"dependencies": {
+		"semantic-release-plugin-update-version-in-files": "^2.0.0"
 	}
 }
