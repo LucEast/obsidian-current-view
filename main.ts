@@ -11,28 +11,28 @@ import {
 } from "obsidian";
 
 // Interface für die Plugin-Einstellungen
-interface ViewModeByFrontmatterSettings {
+interface CurrentViewSettings {
   debounceTimeout: number; // Zeit in Millisekunden für das Debouncing
   customFrontmatterKey: string; // Benutzerdefinierte Frontmatter-Schlüssel
-  ignoreOpenFiles: boolean; // Ob geöffnete Dateien ignoriert werden sollen
+  ignoreAlreadyOpen: boolean; // Ob geöffnete Dateien ignoriert werden sollen
   ignoreForceViewAll: boolean; // Ob erzwungene Ansichtsänderungen ignoriert werden sollen
-  folders: { folder: string; viewMode: string }[]; // Ordner mit zugewiesenen Ansichtsmodi
-  files: { filePattern: string; viewMode: string }[]; // Dateien mit zugewiesenen Ansichtsmodi
+  folderRules: Array<{ path: string; mode: string }>; // Ordner mit zugewiesenen Ansichtsmodi
+  filePatterns: Array<{ pattern: string; mode: string }>; // Dateien mit zugewiesenen Ansichtsmodi
 }
 
 // Standardwerte für die Plugin-Einstellungen
-const DEFAULT_SETTINGS: ViewModeByFrontmatterSettings = {
+const DEFAULT_SETTINGS: CurrentViewSettings = {
   debounceTimeout: 300,
   customFrontmatterKey: "current view",
-  ignoreOpenFiles: false,
+  ignoreAlreadyOpen: false,
   ignoreForceViewAll: false,
-  folders: [{ folder: "", viewMode: "" }],
-  files: [{ filePattern: "", viewMode: "" }],
+  folderRules: [],
+  filePatterns: [],
 };
 
 // Hauptklasse des Plugins
-export default class ViewModeByFrontmatterPlugin extends Plugin {
-  settings: ViewModeByFrontmatterSettings; // Plugin-Einstellungen
+export default class CurrentViewSettingsPlugin extends Plugin {
+  settings: CurrentViewSettings; // Plugin-Einstellungen
   openedFiles: String[]; // Liste der geöffneten Dateien
 
   // Wird beim Laden des Plugins aufgerufen
@@ -41,7 +41,7 @@ export default class ViewModeByFrontmatterPlugin extends Plugin {
     await this.loadSettings();
 
     // Einstellungs-Tab hinzufügen
-    this.addSettingTab(new ViewModeByFrontmatterSettingTab(this.app, this));
+    this.addSettingTab(new CurrentViewSettingsTab(this.app, this));
 
     // Geöffnete Dateien zurücksetzen
     this.openedFiles = resetOpenedNotes(this.app);
@@ -52,16 +52,16 @@ export default class ViewModeByFrontmatterPlugin extends Plugin {
       let view = leaf.view instanceof MarkdownView ? leaf.view : null;
 
       if (null === view) {
-        // Wenn keine Markdown-Ansicht und "ignoreOpenFiles" aktiviert ist, zurücksetzen
-        if (true == this.settings.ignoreOpenFiles) {
+        // Wenn keine Markdown-Ansicht und "ignoreAlreadyOpen" aktiviert ist, zurücksetzen
+        if (true == this.settings.ignoreAlreadyOpen) {
           this.openedFiles = resetOpenedNotes(this.app);
         }
         return;
       }
 
-      // Wenn die Datei bereits geöffnet ist und "ignoreOpenFiles" aktiviert ist, nichts tun
+      // Wenn die Datei bereits geöffnet ist und "ignoreAlreadyOpen" aktiviert ist, nichts tun
       if (
-        true == this.settings.ignoreOpenFiles &&
+        true == this.settings.ignoreAlreadyOpen &&
         view.file !== null &&
         alreadyOpen(view.file, this.openedFiles)
       ) {
@@ -88,9 +88,9 @@ export default class ViewModeByFrontmatterPlugin extends Plugin {
       };
 
       // Überprüfen, ob die Datei in einem konfigurierten Ordner liegt
-      for (const folderMode of this.settings.folders) {
-        if (folderMode.folder !== "" && folderMode.viewMode) {
-          const folder = this.app.vault.getAbstractFileByPath(folderMode.folder);
+      for (const folderMode of this.settings.folderRules) {
+        if (folderMode.path !== "" && folderMode.mode) {
+          const folder = this.app.vault.getAbstractFileByPath(folderMode.path);
           if (folder instanceof TFolder) {
             if (
               view.file &&
@@ -99,20 +99,20 @@ export default class ViewModeByFrontmatterPlugin extends Plugin {
               if (!state.state) {
                 continue;
               }
-              setFolderOrFileModeState(folderMode.viewMode);
+              setFolderOrFileModeState(folderMode.mode);
             }
           } else {
-            console.warn(`ForceViewMode: Folder ${folderMode.folder} does not exist or is not a folder.`);
+            console.warn(`ForceViewMode: Folder ${folderMode.path} does not exist or is not a folder.`);
           }
         }
       }
 
       // Überprüfen, ob die Datei einem konfigurierten Muster entspricht
-      for (const { filePattern, viewMode } of this.settings.files) {
-        if (!filePattern || !viewMode) continue;
+      for (const { pattern, mode } of this.settings.filePatterns) {
+        if (!pattern || !mode) continue;
         if (!state.state) continue;
-        if (!view.file || !view.file.basename.match(filePattern)) continue;
-        setFolderOrFileModeState(viewMode);
+        if (!view.file || !view.file.basename.match(pattern)) continue;
+        setFolderOrFileModeState(mode);
       }
 
       // Anwenden, wenn ein Ordner- oder Datei-Ansichtsmodus gesetzt wurde
@@ -130,7 +130,7 @@ export default class ViewModeByFrontmatterPlugin extends Plugin {
 
       if (typeof fmValue === "string" && ["reading", "source", "live"].includes(fmValue)) {
         applyViewMode(state, fmValue, view, leaf);
-        if (true == this.settings.ignoreOpenFiles) {
+        if (true == this.settings.ignoreAlreadyOpen) {
           this.openedFiles = resetOpenedNotes(this.app);
         }
         return;
@@ -243,10 +243,10 @@ function resetOpenedNotes(app: App): String[] {
 }
 
 // Klasse für die Plugin-Einstellungen
-class ViewModeByFrontmatterSettingTab extends PluginSettingTab {
-  plugin: ViewModeByFrontmatterPlugin;
+class CurrentViewSettingsTab extends PluginSettingTab {
+  plugin: CurrentViewSettingsPlugin
 
-  constructor(app: App, plugin: ViewModeByFrontmatterPlugin) {
+  constructor(app: App, plugin: CurrentViewSettingsPlugin) {
     super(app, plugin);
     this.plugin = plugin;
   }
@@ -256,9 +256,7 @@ class ViewModeByFrontmatterSettingTab extends PluginSettingTab {
     let { containerEl } = this;
     containerEl.empty();
 
-    const createHeader = (text: string) => containerEl.createEl("h2", { text });
-
-    createHeader("Current View");
+    new Setting(containerEl).setName('Current View').setHeading();
 
     const generalSettingsText = document.createDocumentFragment();
     generalSettingsText.append(
@@ -273,9 +271,7 @@ class ViewModeByFrontmatterSettingTab extends PluginSettingTab {
       " (Live Preview)."
     );
 
-    containerEl.appendChild(generalSettingsText);
-
-    new Setting(containerEl).setHeading();
+    new Setting(this.containerEl).setDesc(generalSettingsText);
 
     new Setting(containerEl)
       .setName("Frontmatter key for view mode")
@@ -295,9 +291,9 @@ class ViewModeByFrontmatterSettingTab extends PluginSettingTab {
       .setDesc("Never change the view mode on a note which was already open.")
       .addToggle((checkbox) =>
         checkbox
-          .setValue(this.plugin.settings.ignoreOpenFiles)
+          .setValue(this.plugin.settings.ignoreAlreadyOpen)
           .onChange(async (value) => {
-            this.plugin.settings.ignoreOpenFiles = value;
+            this.plugin.settings.ignoreAlreadyOpen = value;
             await this.plugin.saveSettings();
           })
       );
@@ -336,7 +332,7 @@ class ViewModeByFrontmatterSettingTab extends PluginSettingTab {
       `${this.plugin.settings.customFrontmatterKey}: live`,
     ];
 
-    createHeader("Folders");
+    new Setting(containerEl).setName('Folders').setHeading();
 
     const folderDesc = document.createDocumentFragment();
     folderDesc.append(
@@ -357,16 +353,16 @@ class ViewModeByFrontmatterSettingTab extends PluginSettingTab {
           .setButtonText("+")
           .setCta()
           .onClick(async () => {
-            this.plugin.settings.folders.push({
-              folder: "",
-              viewMode: "",
+            this.plugin.settings.folderRules.push({
+              path: "",
+              mode: "",
             });
             await this.plugin.saveSettings();
             this.display();
           });
       });
 
-    this.plugin.settings.folders.forEach((folderMode, index) => {
+    this.plugin.settings.folderRules.forEach((folderMode, index) => {
       const div = containerEl.createEl("div");
       div.addClass("force-view-mode-div");
       div.addClass("force-view-mode-folder");
@@ -374,11 +370,11 @@ class ViewModeByFrontmatterSettingTab extends PluginSettingTab {
       const s = new Setting(this.containerEl)
         .addSearch((cb) => {
           cb.setPlaceholder("Example: folder1/templates")
-            .setValue(folderMode.folder)
+            .setValue(folderMode.path)
             .onChange(async (newFolder) => {
               if (
                 newFolder &&
-                this.plugin.settings.folders.some((e) => e.folder == newFolder)
+                this.plugin.settings.folderRules.some((e) => e.path == newFolder)
               ) {
                 console.error(
                   "ForceViewMode: This folder already has a template associated with",
@@ -386,7 +382,7 @@ class ViewModeByFrontmatterSettingTab extends PluginSettingTab {
                 );
                 return;
               }
-              this.plugin.settings.folders[index].folder = newFolder;
+              this.plugin.settings.folderRules[index].path = newFolder;
               await this.plugin.saveSettings();
             });
         })
@@ -394,8 +390,8 @@ class ViewModeByFrontmatterSettingTab extends PluginSettingTab {
           modes.forEach((mode) => {
             cb.addOption(mode, mode);
           });
-          cb.setValue(folderMode.viewMode || "default").onChange(async (value) => {
-            this.plugin.settings.folders[index].viewMode = value;
+          cb.setValue(folderMode.mode || "default").onChange(async (value) => {
+            this.plugin.settings.folderRules[index].mode = value;
             await this.plugin.saveSettings();
           });
         })
@@ -403,7 +399,7 @@ class ViewModeByFrontmatterSettingTab extends PluginSettingTab {
           cb.setIcon("cross")
             .setTooltip("Delete")
             .onClick(async () => {
-              this.plugin.settings.folders.splice(index, 1);
+              this.plugin.settings.folderRules.splice(index, 1);
               await this.plugin.saveSettings();
               this.display();
             });
@@ -413,7 +409,7 @@ class ViewModeByFrontmatterSettingTab extends PluginSettingTab {
       div.appendChild(containerEl.lastChild as Node);
     });
 
-    createHeader("Files");
+    new Setting(containerEl).setName('Files').setHeading();
 
     const filesDesc = document.createDocumentFragment();
     filesDesc.append(
@@ -436,16 +432,16 @@ class ViewModeByFrontmatterSettingTab extends PluginSettingTab {
           .setButtonText("+")
           .setCta()
           .onClick(async () => {
-            this.plugin.settings.files.push({
-              filePattern: "",
-              viewMode: "",
+            this.plugin.settings.filePatterns.push({
+              pattern: "",
+              mode: "",
             });
             await this.plugin.saveSettings();
             this.display();
           });
       });
 
-    this.plugin.settings.files.forEach((file, index) => {
+    this.plugin.settings.filePatterns.forEach((file, index) => {
       const div = containerEl.createEl("div");
       div.addClass("force-view-mode-div");
       div.addClass("force-view-mode-folder");
@@ -453,16 +449,16 @@ class ViewModeByFrontmatterSettingTab extends PluginSettingTab {
       const s = new Setting(this.containerEl)
         .addSearch((cb) => {
           cb.setPlaceholder(`Example: " - All$" or "1900-01")`)
-            .setValue(file.filePattern)
+            .setValue(file.pattern)
             .onChange(async (value) => {
               if (
                 value &&
-                this.plugin.settings.files.some((e) => e.filePattern == value)
+                this.plugin.settings.filePatterns.some((e) => e.pattern == value)
               ) {
                 console.error("ForceViewMode: Pattern already exists", value);
                 return;
               }
-              this.plugin.settings.files[index].filePattern = value;
+              this.plugin.settings.filePatterns[index].pattern = value;
               await this.plugin.saveSettings();
             });
         })
@@ -470,8 +466,8 @@ class ViewModeByFrontmatterSettingTab extends PluginSettingTab {
           modes.forEach((mode) => {
             cb.addOption(mode, mode);
           });
-          cb.setValue(file.viewMode || "default").onChange(async (value) => {
-            this.plugin.settings.files[index].viewMode = value;
+          cb.setValue(file.mode || "default").onChange(async (value) => {
+            this.plugin.settings.filePatterns[index].mode = value;
             await this.plugin.saveSettings();
           });
         })
@@ -479,7 +475,7 @@ class ViewModeByFrontmatterSettingTab extends PluginSettingTab {
           cb.setIcon("cross")
             .setTooltip("Delete")
             .onClick(async () => {
-              this.plugin.settings.files.splice(index, 1);
+              this.plugin.settings.filePatterns.splice(index, 1);
               await this.plugin.saveSettings();
               this.display();
             });
