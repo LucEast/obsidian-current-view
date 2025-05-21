@@ -10,56 +10,56 @@ import {
   debounce,
 } from "obsidian";
 
-// Interface für die Plugin-Einstellungen
+// Interface for plugin settings
 interface CurrentViewSettings {
-  debounceTimeout: number; // Zeit in Millisekunden für das Debouncing
-  customFrontmatterKey: string; // Benutzerdefinierte Frontmatter-Schlüssel
-  ignoreAlreadyOpen: boolean; // Ob geöffnete Dateien ignoriert werden sollen
-  ignoreForceViewAll: boolean; // Ob erzwungene Ansichtsänderungen ignoriert werden sollen
-  folderRules: Array<{ path: string; mode: string }>; // Ordner mit zugewiesenen Ansichtsmodi
-  filePatterns: Array<{ pattern: string; mode: string }>; // Dateien mit zugewiesenen Ansichtsmodi
+  debounceTimeout: number; // Time in milliseconds to wait before applying the view mode
+  customFrontmatterKey: string; // user-defined frontmatter key to control the view mode
+  ignoreAlreadyOpen: boolean; // If true, the plugin will not change the view mode of already opened notes
+  ignoreForceViewAll: boolean; // If true, the plugin will not change the view mode of notes opened from another one in a certain view mode
+  folderRules: Array<{ path: string; mode: string }>; // Folder rules with assigned view modes
+  filePatterns: Array<{ pattern: string; mode: string }>; // File patterns with assigned view modes
 }
 
-// Standardwerte für die Plugin-Einstellungen
+// defaults for plugin settings
 const DEFAULT_SETTINGS: CurrentViewSettings = {
   debounceTimeout: 300,
   customFrontmatterKey: "current view",
   ignoreAlreadyOpen: false,
   ignoreForceViewAll: false,
-  folderRules: [],
-  filePatterns: [],
+  folderRules: [{path: "", mode: ""}],
+  filePatterns: [{pattern: "", mode: ""}],
 };
 
-// Hauptklasse des Plugins
+// main plugin class
 export default class CurrentViewSettingsPlugin extends Plugin {
-  settings: CurrentViewSettings; // Plugin-Einstellungen
-  openedFiles: String[]; // Liste der geöffneten Dateien
+  settings: CurrentViewSettings; 
+  openedFiles: String[]; // List of opened files
 
-  // Wird beim Laden des Plugins aufgerufen
+  // gets called when the plugin is loaded
   async onload() {
-    // Einstellungen laden
+    // load settings
     await this.loadSettings();
 
-    // Einstellungs-Tab hinzufügen
+    // Add the settings tab to the Obsidian settings UI
     this.addSettingTab(new CurrentViewSettingsTab(this.app, this));
 
-    // Geöffnete Dateien zurücksetzen
+    // Initialize the list of currently opened files
     this.openedFiles = resetOpenedNotes(this.app);
 
-    // Funktion, um den Ansichtsmodus basierend auf Frontmatter zu ändern
+    // Main function: reads the desired view mode from frontmatter or rules and applies it
     const readViewModeFromFrontmatterAndToggle = async (leaf: WorkspaceLeaf) => {
-      // Überprüfen, ob die Ansicht ein MarkdownView ist
+      // Check if the current leaf is a Markdown view
       let view = leaf.view instanceof MarkdownView ? leaf.view : null;
 
       if (null === view) {
-        // Wenn keine Markdown-Ansicht und "ignoreAlreadyOpen" aktiviert ist, zurücksetzen
+        // If not a Markdown view and "ignoreAlreadyOpen" is enabled, reset opened files
         if (true == this.settings.ignoreAlreadyOpen) {
           this.openedFiles = resetOpenedNotes(this.app);
         }
         return;
       }
 
-      // Wenn die Datei bereits geöffnet ist und "ignoreAlreadyOpen" aktiviert ist, nichts tun
+      // If the file is already open and "ignoreAlreadyOpen" is enabled, do nothing
       if (
         true == this.settings.ignoreAlreadyOpen &&
         view.file !== null &&
@@ -69,17 +69,17 @@ export default class CurrentViewSettingsPlugin extends Plugin {
         return;
       }
 
-      // Aktuellen Ansichtsstatus abrufen
+      // Get the current view state
       let state = leaf.getViewState();
 
-      // Variable für den Ordner- oder Datei-Ansichtsmodus
+      // Variable for folder or file pattern view mode
       let folderOrFileModeState: string | null = null;
 
-      // Funktion, um den Ansichtsmodus basierend auf einem Schlüssel zu setzen
+      // Helper: set folderOrFileModeState if a matching rule is found
       const setFolderOrFileModeState = (viewMode: string): void => {
         const [key, value] = viewMode.split(":").map((s) => s.trim());
         if (key === "default") {
-          folderOrFileModeState = null; // Kein Zustand setzen
+          folderOrFileModeState = null; // Do not set any mode
           return;
         }
         if (key !== this.settings.customFrontmatterKey) return;
@@ -87,7 +87,7 @@ export default class CurrentViewSettingsPlugin extends Plugin {
         folderOrFileModeState = value;
       };
 
-      // Überprüfen, ob die Datei in einem konfigurierten Ordner liegt
+      // Check if the file is in a configured folder and set mode if so
       for (const folderMode of this.settings.folderRules) {
         if (folderMode.path !== "" && folderMode.mode) {
           const folder = this.app.vault.getAbstractFileByPath(folderMode.path);
@@ -107,7 +107,7 @@ export default class CurrentViewSettingsPlugin extends Plugin {
         }
       }
 
-      // Überprüfen, ob die Datei einem konfigurierten Muster entspricht
+      // Check if the file matches a configured pattern and set mode if so
       for (const { pattern, mode } of this.settings.filePatterns) {
         if (!pattern || !mode) continue;
         if (!state.state) continue;
@@ -115,13 +115,13 @@ export default class CurrentViewSettingsPlugin extends Plugin {
         setFolderOrFileModeState(mode);
       }
 
-      // Anwenden, wenn ein Ordner- oder Datei-Ansichtsmodus gesetzt wurde
+      // If a folder or file pattern mode was set, apply it and return
       if (folderOrFileModeState) {
         applyViewMode(state, folderOrFileModeState, view, leaf);
         return;
       }
 
-      // Frontmatter auslesen
+      // Read frontmatter value for the custom key
       const fileCache = view.file ? this.app.metadataCache.getFileCache(view.file) : null;
       const fmValue =
         fileCache !== null && fileCache.frontmatter
@@ -136,7 +136,7 @@ export default class CurrentViewSettingsPlugin extends Plugin {
         return;
       }
 
-      // Fallback: Standard-View-Mode
+      // Fallback: apply the default view mode from Obsidian settings
       // @ts-ignore
       const defaultViewMode = this.app.workspace.getConfig("defaultViewMode")
         // @ts-ignore
@@ -167,7 +167,7 @@ export default class CurrentViewSettingsPlugin extends Plugin {
       }
     };
 
-    // Hilfsfunktion für die Ansicht
+    // Helper function: applies the view mode to the note
     const applyViewMode = async (
       state: any,
       value: string,
@@ -187,7 +187,7 @@ export default class CurrentViewSettingsPlugin extends Plugin {
       await leaf.setViewState(state);
     };
 
-    // Event registrieren, um Ansichtsmodus bei Änderungen des aktiven Blatts zu setzen
+    // Register event: apply view mode when the active leaf changes
     this.registerEvent(
       this.app.workspace.on(
         "active-leaf-change",
@@ -201,23 +201,23 @@ export default class CurrentViewSettingsPlugin extends Plugin {
     );
   }
 
-  // Einstellungen laden
+  // Load plugin settings from disk or use defaults
   async loadSettings() {
     this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
   }
 
-  // Einstellungen speichern
+  // Save plugin settings to disk
   async saveSettings() {
     await this.saveData(this.settings);
   }
 
-  // Wird beim Entladen des Plugins aufgerufen
+  // Called when the plugin is unloaded (e.g., disabled or removed)
   async onunload() {
     this.openedFiles = [];
   }
 }
 
-// Funktion, um zu überprüfen, ob eine Datei bereits geöffnet ist
+// Check if a file is already open in the workspace
 function alreadyOpen(currFile: TFile, openedFiles: String[]): boolean {
   const leavesWithSameNote: String[] = [];
   if (currFile == null) return false;
@@ -227,7 +227,7 @@ function alreadyOpen(currFile: TFile, openedFiles: String[]): boolean {
   return leavesWithSameNote.length != 0;
 }
 
-// Funktion, um die Liste der geöffneten Dateien zurückzusetzen
+// Get a list of all currently opened file basenames in the workspace
 function resetOpenedNotes(app: App): String[] {
   let openedFiles: String[] = [];
   app.workspace.iterateAllLeaves((leaf) => {
@@ -242,7 +242,7 @@ function resetOpenedNotes(app: App): String[] {
   return openedFiles;
 }
 
-// Klasse für die Plugin-Einstellungen
+// Settings tab class for the plugin
 class CurrentViewSettingsTab extends PluginSettingTab {
   plugin: CurrentViewSettingsPlugin
 
@@ -251,13 +251,15 @@ class CurrentViewSettingsTab extends PluginSettingTab {
     this.plugin = plugin;
   }
 
-  // Anzeige der Einstellungen
+  // Render the settings UI
   display(): void {
     let { containerEl } = this;
     containerEl.empty();
 
+    // Heading for the settings section
     new Setting(containerEl).setName('Current View').setHeading();
 
+    // General info about the plugin and frontmatter usage
     const generalSettingsText = document.createDocumentFragment();
     generalSettingsText.append(
       "You can control the view mode of a note using the frontmatter key ",
@@ -273,6 +275,7 @@ class CurrentViewSettingsTab extends PluginSettingTab {
 
     new Setting(this.containerEl).setDesc(generalSettingsText);
 
+    // Setting: custom frontmatter key
     new Setting(containerEl)
       .setName("Frontmatter key for view mode")
       .setDesc("Custom frontmatter key used to define the view mode. Default is 'current view'.")
@@ -286,6 +289,7 @@ class CurrentViewSettingsTab extends PluginSettingTab {
           });
       });
 
+    // Setting: ignore already opened files
     new Setting(containerEl)
       .setName("Ignore opened files")
       .setDesc("Never change the view mode on a note which was already open.")
@@ -297,6 +301,8 @@ class CurrentViewSettingsTab extends PluginSettingTab {
             await this.plugin.saveSettings();
           })
       );
+
+    // Setting: ignore force view when not in frontmatter
     new Setting(containerEl)
       .setName("Ignore force view when not in frontmatter")
       .setDesc(
@@ -311,6 +317,7 @@ class CurrentViewSettingsTab extends PluginSettingTab {
           });
       });
 
+    // Setting: debounce timeout
     new Setting(containerEl)
       .setName("Debounce timeout in milliseconds")
       .setDesc(
@@ -325,6 +332,7 @@ class CurrentViewSettingsTab extends PluginSettingTab {
         );
       });
 
+    // Dropdown options for folder/file rules
     const modes = [
       "default",
       `${this.plugin.settings.customFrontmatterKey}: reading`,
@@ -332,8 +340,10 @@ class CurrentViewSettingsTab extends PluginSettingTab {
       `${this.plugin.settings.customFrontmatterKey}: live`,
     ];
 
+    // Heading for folder rules
     new Setting(containerEl).setName('Folders').setHeading();
 
+    // Description for folder rules
     const folderDesc = document.createDocumentFragment();
     folderDesc.append(
       "Specify a view mode for notes in a given folder.",
@@ -345,6 +355,7 @@ class CurrentViewSettingsTab extends PluginSettingTab {
 
     new Setting(this.containerEl).setDesc(folderDesc);
 
+    // Button to add a new folder rule
     new Setting(this.containerEl)
       .setDesc("Add new folder")
       .addButton((button) => {
@@ -362,6 +373,7 @@ class CurrentViewSettingsTab extends PluginSettingTab {
           });
       });
 
+    // Render each folder rule
     this.plugin.settings.folderRules.forEach((folderMode, index) => {
       const div = containerEl.createEl("div");
       div.addClass("force-view-mode-div");
@@ -409,8 +421,10 @@ class CurrentViewSettingsTab extends PluginSettingTab {
       div.appendChild(containerEl.lastChild as Node);
     });
 
+    // Heading for file pattern rules
     new Setting(containerEl).setName('Files').setHeading();
 
+    // Description for file pattern rules
     const filesDesc = document.createDocumentFragment();
     filesDesc.append(
       "Specify a view mode for notes with specific patterns (regular expression; example \" - All$\" for all notes ending with \" - All\" or \"1900-01\" for all daily notes starting with \"1900-01\"",
@@ -424,6 +438,7 @@ class CurrentViewSettingsTab extends PluginSettingTab {
 
     new Setting(this.containerEl).setDesc(filesDesc);
 
+    // Button to add a new file pattern rule
     new Setting(this.containerEl)
       .setDesc("Add new file")
       .addButton((button) => {
@@ -441,6 +456,7 @@ class CurrentViewSettingsTab extends PluginSettingTab {
           });
       });
 
+    // Render each file pattern rule
     this.plugin.settings.filePatterns.forEach((file, index) => {
       const div = containerEl.createEl("div");
       div.addClass("force-view-mode-div");
