@@ -1,7 +1,7 @@
 {
 	"id": "current-view",
 	"name": "Current View",
-	"version": "1.0.6",
+	"version": "1.0.7",
 	"minAppVersion": "0.15.0",
 	"description": "Automatically set the view mode (Reading, Live Preview, Source) for notes using folder rules, file patterns, or frontmatter.",
 	"author": "Lucas Ostmann",
