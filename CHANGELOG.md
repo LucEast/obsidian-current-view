@@ -1,3 +1,10 @@
+## [1.0.8](https://github.com/LucEast/obsidian-current-view/compare/1.0.7...1.0.8) (2025-06-28)
+
+
+### Bug Fixes
+
+* Fixed Issue [#11](https://github.com/LucEast/obsidian-current-view/issues/11) ([31469d0](https://github.com/LucEast/obsidian-current-view/commit/31469d0ca7af68203ef0caa61ea1ca1a04793cc7))
+
 ## [1.0.7](https://github.com/LucEast/obsidian-current-view/compare/1.0.6...1.0.7) (2025-05-21)
 
 
