@@ -138,17 +138,17 @@ export default class CurrentViewSettingsPlugin extends Plugin {
 
       // Fallback: apply the default view mode from Obsidian settings
       // @ts-ignore
-      const defaultViewMode = this.app.workspace.getConfig("defaultViewMode")
+      const defaultViewMode = this.app.vault.getConfig("defaultViewMode")
         // @ts-ignore
-        ? this.app.workspace.getConfig("defaultViewMode")
+        ? this.app.vault.getConfig("defaultViewMode")
         : "source";
       // @ts-ignore
       const defaultEditingModeIsLivePreview =
         // @ts-ignore
-        this.app.workspace.getConfig("livePreview") === undefined
+        this.app.vault.getConfig("livePreview") === undefined
           ? true
           // @ts-ignore
-          : this.app.workspace.getConfig("livePreview");
+          : this.app.vault.getConfig("livePreview");
 
       if (!this.settings.ignoreForceViewAll) {
         let state = leaf.getViewState();
