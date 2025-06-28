@@ -1,3 +1,4 @@
+import { create } from "domain";
 import {
   WorkspaceLeaf,
   Plugin,
@@ -8,6 +9,7 @@ import {
   PluginSettingTab,
   Setting,
   debounce,
+  ViewState,
 } from "obsidian";
 
 // Interface for plugin settings
@@ -45,6 +47,11 @@ export default class CurrentViewSettingsPlugin extends Plugin {
 
     // Initialize the list of currently opened files
     this.openedFiles = resetOpenedNotes(this.app);
+
+    type MarkdownViewState = {
+      mode: "preview" | "source";
+      source: boolean;
+    };
 
     // Main function: reads the desired view mode from frontmatter or rules and applies it
     const readViewModeFromFrontmatterAndToggle = async (leaf: WorkspaceLeaf) => {
@@ -115,9 +122,12 @@ export default class CurrentViewSettingsPlugin extends Plugin {
         setFolderOrFileModeState(mode);
       }
 
+      const rawState = leaf.getViewState();
+      const typedState = rawState as ViewState & { state: MarkdownViewState };    
+
       // If a folder or file pattern mode was set, apply it and return
       if (folderOrFileModeState) {
-        applyViewMode(state, folderOrFileModeState, view, leaf);
+        applyViewMode(typedState, folderOrFileModeState, view, leaf);
         return;
       }
 
@@ -129,7 +139,7 @@ export default class CurrentViewSettingsPlugin extends Plugin {
           : null;
 
       if (typeof fmValue === "string" && ["reading", "source", "live"].includes(fmValue)) {
-        applyViewMode(state, fmValue, view, leaf);
+        applyViewMode(typedState, fmValue, view, leaf);
         if (true == this.settings.ignoreAlreadyOpen) {
           this.openedFiles = resetOpenedNotes(this.app);
         }
@@ -167,24 +177,26 @@ export default class CurrentViewSettingsPlugin extends Plugin {
       }
     };
 
+
+
     // Helper function: applies the view mode to the note
     const applyViewMode = async (
-      state: any,
+      viewState: ViewState & { state: MarkdownViewState },
       value: string,
       view: MarkdownView,
       leaf: WorkspaceLeaf
     ) => {
       if (value === "reading") {
-        state.state.mode = "preview";
-        state.state.source = false;
+        viewState.state.mode = "preview";
+        viewState.state.source = false;
       } else if (value === "source") {
-        state.state.mode = "source";
-        state.state.source = true;
+        viewState.state.mode = "source";
+        viewState.state.source = true;
       } else if (value === "live") {
-        state.state.mode = "source";
-        state.state.source = false;
+        viewState.state.mode = "source";
+        viewState.state.source = false;
       }
-      await leaf.setViewState(state);
+      await leaf.setViewState(viewState);
     };
 
     // Register event: apply view mode when the active leaf changes
@@ -257,23 +269,12 @@ class CurrentViewSettingsTab extends PluginSettingTab {
     containerEl.empty();
 
     // Heading for the settings section
-    new Setting(containerEl).setName('Current View').setHeading();
+    new Setting(containerEl).setName('current view').setHeading();
 
-    // General info about the plugin and frontmatter usage
-    const generalSettingsText = document.createDocumentFragment();
-    generalSettingsText.append(
-      "You can control the view mode of a note using the frontmatter key ",
-      generalSettingsText.createEl("code", { text: this.plugin.settings.customFrontmatterKey }),
-      ". Possible values are ",
-      generalSettingsText.createEl("code", { text: "reading" }),
-      " (Preview), ",
-      generalSettingsText.createEl("code", { text: "source" }),
-      " (Source Mode), or ",
-      generalSettingsText.createEl("code", { text: "live" }),
-      " (Live Preview)."
-    );
-
-    new Setting(this.containerEl).setDesc(generalSettingsText);
+    new Setting(this.containerEl)
+      .setDesc(createFragment((f) => {
+        f.appendText("You can control the view mode of a note using frontmatter or rules.Possible values are 'reading' (Preview), 'source' (Source Mode), or 'live' (Live Preview). You can also set a custom frontmatter key to control the view mode, which is currently set to:");
+      }));
 
     // Setting: custom frontmatter key
     new Setting(containerEl)
@@ -343,17 +344,14 @@ class CurrentViewSettingsTab extends PluginSettingTab {
     // Heading for folder rules
     new Setting(containerEl).setName('Folders').setHeading();
 
-    // Description for folder rules
-    const folderDesc = document.createDocumentFragment();
-    folderDesc.append(
-      "Specify a view mode for notes in a given folder.",
-      folderDesc.createEl("br"),
-      "Note that this will force the view mode on all the notes in the folder, even if they have a different view mode set in their frontmatter.",
-      folderDesc.createEl("br"),
-      "Precedence is from bottom (highest) to top (lowest), so if you have child folders specified, make sure to put them below their parent folder."
-    );
-
-    new Setting(this.containerEl).setDesc(folderDesc);
+    new Setting(this.containerEl)
+      .setDesc(createFragment((f) => {
+        f.appendText("Specify a view mode for notes in a given folder.");
+        f.createEl("br");
+        f.appendText("Note that this will force the view mode on all the notes in the folder, even if they have a different view mode set in their frontmatter.");
+        f.createEl("br");
+        f.appendText("Precedence is from bottom (highest) to top (lowest), so if you have child folders specified, make sure to put them below their parent folder.");
+      }));
 
     // Button to add a new folder rule
     new Setting(this.containerEl)
@@ -424,19 +422,16 @@ class CurrentViewSettingsTab extends PluginSettingTab {
     // Heading for file pattern rules
     new Setting(containerEl).setName('Files').setHeading();
 
-    // Description for file pattern rules
-    const filesDesc = document.createDocumentFragment();
-    filesDesc.append(
-      "Specify a view mode for notes with specific patterns (regular expression; example \" - All$\" for all notes ending with \" - All\" or \"1900-01\" for all daily notes starting with \"1900-01\"",
-      filesDesc.createEl("br"),
-      "Note that this will force the view mode, even if it have a different view mode set in its frontmatter.",
-      filesDesc.createEl("br"),
-      "Precedence is from bottom (highest) to top (lowest).",
-      filesDesc.createEl("br"),
-      "Notice that configuring a file pattern will override the folder configuration for the same file."
-    );
-
-    new Setting(this.containerEl).setDesc(filesDesc);
+    new Setting(this.containerEl)
+      .setDesc(createFragment((f) => {
+        f.appendText("Specify a view mode for notes with specific patterns (regular expression; example \" - All$\" for all notes ending with \" - All\" or \"1900-01\" for all daily notes starting with \"1900-01\"");
+        f.createEl("br");
+        f.appendText("Note that this will force the view mode, even if it have a different view mode set in its frontmatter.");
+        f.createEl("br");
+        f.appendText("Precedence is from bottom (highest) to top (lowest).");
+        f.createEl("br");
+        f.appendText("Notice that configuring a file pattern will override the folder configuration for the same file.");
+      }));
 
     // Button to add a new file pattern rule
     new Setting(this.containerEl)
