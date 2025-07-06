@@ -268,9 +268,6 @@ class CurrentViewSettingsTab extends PluginSettingTab {
     let { containerEl } = this;
     containerEl.empty();
 
-    // Heading for the settings section
-    new Setting(containerEl).setName('current view').setHeading();
-
     new Setting(this.containerEl)
       .setDesc(createFragment((f) => {
         f.appendText("You can control the view mode of a note using frontmatter or rules.Possible values are 'reading' (Preview), 'source' (Source Mode), or 'live' (Live Preview). You can also set a custom frontmatter key to control the view mode, which is currently set to:");
