@@ -1,4 +1,4 @@
-# obsidian-current-view
+# current-view
 
 Automatically set the view mode (Reading, Live Preview, or Source) of notes in Obsidian based on file patterns, folder paths, or frontmatter values.
 
