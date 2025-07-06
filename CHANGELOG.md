@@ -1,3 +1,10 @@
+## [1.0.10](https://github.com/LucEast/obsidian-current-view/compare/1.0.9...1.0.10) (2025-07-06)
+
+
+### Bug Fixes
+
+* Removed Setting Heading (Issue: [#15](https://github.com/LucEast/obsidian-current-view/issues/15)) ([152c4e9](https://github.com/LucEast/obsidian-current-view/commit/152c4e91f3c92e59c9632d5c3bbf8b66dbf2bfeb))
+
 ## [1.0.9](https://github.com/LucEast/obsidian-current-view/compare/1.0.8...1.0.9) (2025-06-28)
 
 
