@@ -9,6 +9,7 @@ import {
   Setting,
   debounce,
   ViewState,
+  Menu,
 } from "obsidian";
 import { resolveViewModeDecision } from "./view-mode";
 
@@ -19,6 +20,7 @@ interface CurrentViewSettings {
   ignoreAlreadyOpen: boolean; // If true, the plugin will not change the view mode of already opened notes
   ignoreForceViewAll: boolean; // If true, the plugin will not change the view mode of notes opened from another one in a certain view mode
   folderRules: Array<{ path: string; mode: string }>; // Folder rules with assigned view modes
+  explicitFileRules: Array<{ path: string; mode: string }>; // Explicit per-file rules
   filePatterns: Array<{ pattern: string; mode: string }>; // File patterns with assigned view modes
 }
 
@@ -29,6 +31,7 @@ const DEFAULT_SETTINGS: CurrentViewSettings = {
   ignoreAlreadyOpen: false,
   ignoreForceViewAll: false,
   folderRules: [{path: "", mode: ""}],
+  explicitFileRules: [],
   filePatterns: [{pattern: "", mode: ""}],
 };
 
@@ -79,7 +82,7 @@ export default class CurrentViewSettingsPlugin extends Plugin {
       // Get the current view state
       let state = leaf.getViewState();
 
-      // Collect matched rule modes to resolve priority (folder, then file)
+      // Collect matched rule modes to resolve priority (folder, then file patterns, then explicit files)
       const matchedRuleModes: string[] = [];
 
       // Check if the file is in a configured folder and set mode if so
@@ -108,6 +111,15 @@ export default class CurrentViewSettingsPlugin extends Plugin {
         if (!state.state) continue;
         if (!view.file || !view.file.basename.match(pattern)) continue;
         matchedRuleModes.push(mode);
+      }
+
+      // Check explicit per-file rules (highest priority)
+      for (const fileRule of this.settings.explicitFileRules) {
+        if (!fileRule.path || !fileRule.mode) continue;
+        if (!state.state) continue;
+        if (view.file && view.file.path === fileRule.path) {
+          matchedRuleModes.push(fileRule.mode);
+        }
       }
 
       const rawState = leaf.getViewState();
@@ -196,9 +208,52 @@ export default class CurrentViewSettingsPlugin extends Plugin {
           : debounce(
               readViewModeFromFrontmatterAndToggle,
               this.settings.debounceTimeout
-            )
+          )
       )
     );
+
+    // Context menu for files
+    this.registerEvent(
+      this.app.workspace.on("file-menu", (menu, file) => {
+        addLockMenuItems(menu, file.path, "file", this);
+      })
+    );
+
+    // Context menu for folders
+    this.registerEvent(
+      this.app.workspace.on("folder-menu", (menu, folder) => {
+        addLockMenuItems(menu, folder.path, "folder", this);
+      })
+    );
+
+    const refreshDecorations = () => decorateFileExplorer(this);
+    this.registerEvent(this.app.workspace.on("layout-change", refreshDecorations));
+    this.registerEvent(
+      this.app.vault.on("rename", async (file, oldPath) => {
+        const newPath = file.path;
+        let changed = false;
+        this.settings.folderRules = this.settings.folderRules.map((r) => {
+          if (r.path === oldPath) {
+            changed = true;
+            return { ...r, path: newPath };
+          }
+          return r;
+        });
+        this.settings.explicitFileRules = this.settings.explicitFileRules.map((r) => {
+          if (r.path === oldPath) {
+            changed = true;
+            return { ...r, path: newPath };
+          }
+          return r;
+        });
+        if (changed) {
+          await this.saveSettings();
+          refreshDecorations();
+        }
+      })
+    );
+
+    refreshDecorations();
   }
 
   // Load plugin settings from disk or use defaults
@@ -241,6 +296,131 @@ function resetOpenedNotes(app: App): String[] {
   });
   return openedFiles;
 }
+
+type LockTarget = "file" | "folder";
+type ViewLockMode = "reading" | "source" | "live";
+
+const VIEW_LOCKS: ViewLockMode[] = ["reading", "source", "live"];
+
+const addLockMenuItems = (
+  menu: Menu,
+  path: string,
+  target: LockTarget,
+  plugin: CurrentViewSettingsPlugin
+) => {
+  VIEW_LOCKS.forEach((mode) => {
+    menu.addItem((item) => {
+      item
+        .setTitle(`Lock ${mode.charAt(0).toUpperCase() + mode.slice(1)}`)
+        .setIcon("lock")
+        .onClick(async () => {
+          await setLock(plugin, target, path, mode);
+        });
+    });
+  });
+
+  menu.addSeparator();
+  menu.addItem((item) =>
+    item
+      .setTitle("Unlock")
+      .setIcon("unlock")
+      .onClick(async () => {
+        await removeLock(plugin, target, path);
+      })
+  );
+};
+
+const setLock = async (
+  plugin: CurrentViewSettingsPlugin,
+  target: LockTarget,
+  path: string,
+  mode: ViewLockMode
+) => {
+  const modeValue = `${plugin.settings.customFrontmatterKey}: ${mode}`;
+  if (target === "file") {
+    plugin.settings.explicitFileRules = [
+      ...plugin.settings.explicitFileRules.filter((r) => r.path !== path),
+      { path, mode: modeValue },
+    ];
+  } else {
+    plugin.settings.folderRules = [
+      ...plugin.settings.folderRules.filter((r) => r.path !== path),
+      { path, mode: modeValue },
+    ];
+  }
+  await plugin.saveSettings();
+  decorateFileExplorer(plugin);
+};
+
+const removeLock = async (
+  plugin: CurrentViewSettingsPlugin,
+  target: LockTarget,
+  path: string
+) => {
+  if (target === "file") {
+    plugin.settings.explicitFileRules = plugin.settings.explicitFileRules.filter(
+      (r) => r.path !== path
+    );
+  } else {
+    plugin.settings.folderRules = plugin.settings.folderRules.filter(
+      (r) => r.path !== path
+    );
+  }
+  await plugin.saveSettings();
+  decorateFileExplorer(plugin);
+};
+
+const decorateFileExplorer = (plugin: CurrentViewSettingsPlugin) => {
+  const leaves = plugin.app.workspace.getLeavesOfType("file-explorer");
+  leaves.forEach((leaf) => {
+    const view: any = leaf.view;
+    const items: Record<string, any> | undefined = view?.fileItems;
+    if (!items) return;
+
+    Object.entries(items).forEach(([path, item]) => {
+      const titleEl: HTMLElement | undefined = item?.titleEl;
+      if (!titleEl) return;
+      const existing = titleEl.querySelector(".current-view-lock");
+      const mode = resolveLockModeForPath(plugin, path);
+      if (mode) {
+        const badge = existing || document.createElement("span");
+        badge.className = "current-view-lock";
+        badge.textContent = renderModeBadge(mode);
+        badge.setAttribute("aria-label", `Locked ${mode}`);
+        badge.style.marginLeft = "6px";
+        badge.style.fontSize = "10px";
+        badge.style.opacity = "0.7";
+        badge.style.textTransform = "uppercase";
+        if (!existing) {
+          titleEl.appendChild(badge);
+        }
+      } else if (existing) {
+        existing.remove();
+      }
+    });
+  });
+};
+
+const resolveLockModeForPath = (
+  plugin: CurrentViewSettingsPlugin,
+  path: string
+): string | null => {
+  const fileRule = plugin.settings.explicitFileRules.find(
+    (r) => r.path === path && r.mode
+  );
+  if (fileRule) return fileRule.mode;
+  const folderRule = plugin.settings.folderRules.find(
+    (r) => r.path === path && r.mode
+  );
+  return folderRule ? folderRule.mode : null;
+};
+
+const renderModeBadge = (mode: string): string => {
+  if (mode.includes("reading")) return "R";
+  if (mode.includes("live")) return "L";
+  if (mode.includes("source")) return "S";
+  return "?";
+};
 
 // Settings tab class for the plugin
 class CurrentViewSettingsTab extends PluginSettingTab {
@@ -479,6 +659,58 @@ class CurrentViewSettingsTab extends PluginSettingTab {
 
       s.infoEl.remove();
       div.appendChild(containerEl.lastChild as Node);
+    });
+
+    // Heading for explicit file locks
+    new Setting(containerEl).setName('Locked files').setHeading();
+    new Setting(this.containerEl)
+      .setDesc("Files locked via context menu. Remove entries to unlock.")
+      .addButton((button) => {
+        button
+          .setTooltip("Add file path manually")
+          .setButtonText("+")
+          .setCta()
+          .onClick(async () => {
+            this.plugin.settings.explicitFileRules.push({ path: "", mode: "" });
+            await this.plugin.saveSettings();
+            this.display();
+          });
+      });
+
+    this.plugin.settings.explicitFileRules.forEach((rule, index) => {
+      const s = new Setting(this.containerEl)
+        .addText((cb) => {
+          cb.setPlaceholder("folder/file.md")
+            .setValue(rule.path)
+            .onChange(async (value) => {
+              this.plugin.settings.explicitFileRules[index].path = value;
+              await this.plugin.saveSettings();
+            });
+        })
+        .addDropdown((cb) => {
+          const modes = [
+            "default",
+            `${this.plugin.settings.customFrontmatterKey}: reading`,
+            `${this.plugin.settings.customFrontmatterKey}: source`,
+            `${this.plugin.settings.customFrontmatterKey}: live`,
+          ];
+          modes.forEach((mode) => cb.addOption(mode, mode));
+          cb.setValue(rule.mode || "default").onChange(async (value) => {
+            this.plugin.settings.explicitFileRules[index].mode = value;
+            await this.plugin.saveSettings();
+          });
+        })
+        .addExtraButton((cb) => {
+          cb.setIcon("cross")
+            .setTooltip("Delete")
+            .onClick(async () => {
+              this.plugin.settings.explicitFileRules.splice(index, 1);
+              await this.plugin.saveSettings();
+              this.display();
+            });
+        });
+
+      s.infoEl.remove();
     });
   }
 }

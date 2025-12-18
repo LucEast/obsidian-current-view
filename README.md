@@ -26,6 +26,7 @@ Automatically set the view mode (Reading, Live Preview, or Source) of notes in O
   - Folder path
   - File name pattern (RegEx)
   - Frontmatter metadata
+- Right-click files or folders in the file explorer to lock them to Reading/Source/Live and see an icon badge inline.
 - Supports:
   - `reading` → Preview mode
   - `source` → Source/Markdown mode
