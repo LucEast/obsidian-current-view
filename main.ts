@@ -220,14 +220,14 @@ export default class CurrentViewSettingsPlugin extends Plugin {
 
     // Context menu for files
     this.registerEvent(
-      this.app.workspace.on("file-menu", (menu, file) => {
+      this.app.workspace.on("file-menu" as any, (menu, file) => {
         addLockMenuItems(menu, file.path, "file", this);
       })
     );
 
     // Context menu for folders
     this.registerEvent(
-      this.app.workspace.on("folder-menu", (menu, folder) => {
+      this.app.workspace.on("folder-menu" as any, (menu, folder) => {
         addLockMenuItems(menu, folder.path, "folder", this);
       })
     );
@@ -393,9 +393,11 @@ const decorateFileExplorer = (plugin: CurrentViewSettingsPlugin) => {
     if (!items) return;
 
     Object.entries(items).forEach(([path, item]) => {
-      const targetEl: HTMLElement | undefined = item?.titleInnerEl || item?.titleEl;
+      const targetEl: HTMLElement | undefined =
+        (item?.titleInnerEl as HTMLElement | undefined) ||
+        (item?.titleEl as HTMLElement | undefined);
       if (!targetEl) return;
-      const existing = targetEl.querySelector(".current-view-lock");
+      const existing = targetEl.querySelector(".current-view-lock") as HTMLElement | null;
       const mode = resolveLockModeForPath(plugin, path);
 
       if (!plugin.settings.showExplorerIcons) {
@@ -404,7 +406,7 @@ const decorateFileExplorer = (plugin: CurrentViewSettingsPlugin) => {
       }
 
       if (mode) {
-        const badge = existing || document.createElement("span");
+        const badge: HTMLElement = existing || document.createElement("span");
         badge.className = "current-view-lock";
         badge.setAttribute("aria-label", `Locked ${mode}`);
         badge.style.marginLeft = "6px";
