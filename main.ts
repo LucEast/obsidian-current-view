@@ -94,15 +94,8 @@ export default class CurrentViewSettingsPlugin extends Plugin {
       // Check if the file is in a configured folder and set mode if so (deepest folders win)
       const matchedFolders = this.settings.folderRules
         .filter((folderMode) => folderMode.path !== "" && folderMode.mode)
-        .map((folderMode) => {
-          const folder = this.app.vault.getAbstractFileByPath(folderMode.path);
-          return folder instanceof TFolder ? { folder, mode: folderMode.mode } : null;
-        })
-        .filter((entry): entry is { folder: TFolder; mode: string } => entry !== null)
-        .filter((entry) => {
-          return view.file ? isPathWithin(view.file.path, entry.folder.path) : false;
-        })
-        .sort((a, b) => a.folder.path.length - b.folder.path.length);
+        .filter((folderMode) => (view.file ? isPathWithin(view.file.path, folderMode.path) : false))
+        .sort((a, b) => a.path.length - b.path.length);
 
       for (const { mode } of matchedFolders) {
         if (!state.state) continue;
