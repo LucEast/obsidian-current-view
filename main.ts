@@ -393,9 +393,7 @@ const decorateFileExplorer = (plugin: CurrentViewSettingsPlugin) => {
     if (!items) return;
 
     Object.entries(items).forEach(([path, item]) => {
-      const targetEl: HTMLElement | undefined =
-        (item?.titleInnerEl as HTMLElement | undefined) ||
-        (item?.titleEl as HTMLElement | undefined);
+      const targetEl = getTitleElement(item);
       if (!targetEl) return;
       const existing = targetEl.querySelector(".current-view-lock") as HTMLElement | null;
       const mode = resolveLockModeForPath(plugin, path);
@@ -428,6 +426,18 @@ const decorateFileExplorer = (plugin: CurrentViewSettingsPlugin) => {
       }
     });
   });
+};
+
+const getTitleElement = (item: any): HTMLElement | null => {
+  const candidates: Array<HTMLElement | null | undefined> = [
+    item?.titleInnerEl as HTMLElement | undefined,
+    item?.titleEl as HTMLElement | undefined,
+    item?.selfEl?.querySelector?.(".nav-file-title-content") as HTMLElement | undefined,
+    item?.selfEl?.querySelector?.(".nav-folder-title-content") as HTMLElement | undefined,
+    item?.selfEl?.querySelector?.(".nav-file-title") as HTMLElement | undefined,
+    item?.selfEl?.querySelector?.(".nav-folder-title") as HTMLElement | undefined,
+  ];
+  return candidates.find((el) => !!el) || null;
 };
 
 const resolveLockModeForPath = (
