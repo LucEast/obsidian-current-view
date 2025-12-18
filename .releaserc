@@ -27,7 +27,9 @@
           "path": "styles.css",
           "label": "styles.css"
         }
-      ]
+      ],
+      "successComment": false,
+      "failComment": false
     }],
     ["@semantic-release/git", {
       "assets": [
