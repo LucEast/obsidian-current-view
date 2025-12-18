@@ -1,4 +1,3 @@
-import { create } from "domain";
 import {
   WorkspaceLeaf,
   Plugin,
@@ -11,6 +10,7 @@ import {
   debounce,
   ViewState,
 } from "obsidian";
+import { resolveViewModeDecision } from "./view-mode";
 
 // Interface for plugin settings
 interface CurrentViewSettings {
@@ -79,20 +79,8 @@ export default class CurrentViewSettingsPlugin extends Plugin {
       // Get the current view state
       let state = leaf.getViewState();
 
-      // Variable for folder or file pattern view mode
-      let folderOrFileModeState: string | null = null;
-
-      // Helper: set folderOrFileModeState if a matching rule is found
-      const setFolderOrFileModeState = (viewMode: string): void => {
-        const [key, value] = viewMode.split(":").map((s) => s.trim());
-        if (key === "default") {
-          folderOrFileModeState = null; // Do not set any mode
-          return;
-        }
-        if (key !== this.settings.customFrontmatterKey) return;
-        if (!["reading", "source", "live"].includes(value)) return;
-        folderOrFileModeState = value;
-      };
+      // Collect matched rule modes to resolve priority (folder, then file)
+      const matchedRuleModes: string[] = [];
 
       // Check if the file is in a configured folder and set mode if so
       for (const folderMode of this.settings.folderRules) {
@@ -106,7 +94,7 @@ export default class CurrentViewSettingsPlugin extends Plugin {
               if (!state.state) {
                 continue;
               }
-              setFolderOrFileModeState(folderMode.mode);
+              matchedRuleModes.push(folderMode.mode);
             }
           } else {
             console.warn(`ForceViewMode: Folder ${folderMode.path} does not exist or is not a folder.`);
@@ -119,17 +107,11 @@ export default class CurrentViewSettingsPlugin extends Plugin {
         if (!pattern || !mode) continue;
         if (!state.state) continue;
         if (!view.file || !view.file.basename.match(pattern)) continue;
-        setFolderOrFileModeState(mode);
+        matchedRuleModes.push(mode);
       }
 
       const rawState = leaf.getViewState();
       const typedState = rawState as ViewState & { state: MarkdownViewState };    
-
-      // If a folder or file pattern mode was set, apply it and return
-      if (folderOrFileModeState) {
-        applyViewMode(typedState, folderOrFileModeState, view, leaf);
-        return;
-      }
 
       // Read frontmatter value for the custom key
       const fileCache = view.file ? this.app.metadataCache.getFileCache(view.file) : null;
@@ -138,9 +120,15 @@ export default class CurrentViewSettingsPlugin extends Plugin {
           ? fileCache.frontmatter[this.settings.customFrontmatterKey]
           : null;
 
-      if (typeof fmValue === "string" && ["reading", "source", "live"].includes(fmValue)) {
-        applyViewMode(typedState, fmValue, view, leaf);
-        if (true == this.settings.ignoreAlreadyOpen) {
+      const { mode: resolvedMode, source } = resolveViewModeDecision({
+        matchedRuleModes,
+        frontmatterValue: fmValue,
+        customFrontmatterKey: this.settings.customFrontmatterKey,
+      });
+
+      if (resolvedMode) {
+        await applyViewMode(typedState, resolvedMode, view, leaf);
+        if (source === "frontmatter" && true == this.settings.ignoreAlreadyOpen) {
           this.openedFiles = resetOpenedNotes(this.app);
         }
         return;
