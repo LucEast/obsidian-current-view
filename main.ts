@@ -386,7 +386,6 @@ const removeLock = async (
 };
 
 const decorateFileExplorer = (plugin: CurrentViewSettingsPlugin) => {
-  if (!plugin.settings.showExplorerIcons) return;
   const leaves = plugin.app.workspace.getLeavesOfType("file-explorer");
   leaves.forEach((leaf) => {
     const view: any = leaf.view;
@@ -394,10 +393,16 @@ const decorateFileExplorer = (plugin: CurrentViewSettingsPlugin) => {
     if (!items) return;
 
     Object.entries(items).forEach(([path, item]) => {
-      const titleEl: HTMLElement | undefined = item?.titleEl;
-      if (!titleEl) return;
-      const existing = titleEl.querySelector(".current-view-lock");
+      const targetEl: HTMLElement | undefined = item?.titleInnerEl || item?.titleEl;
+      if (!targetEl) return;
+      const existing = targetEl.querySelector(".current-view-lock");
       const mode = resolveLockModeForPath(plugin, path);
+
+      if (!plugin.settings.showExplorerIcons) {
+        if (existing) existing.remove();
+        return;
+      }
+
       if (mode) {
         const badge = existing || document.createElement("span");
         badge.className = "current-view-lock";
@@ -414,7 +419,7 @@ const decorateFileExplorer = (plugin: CurrentViewSettingsPlugin) => {
         badge.innerHTML = "";
         setIcon(badge, renderModeIcon(mode));
         if (!existing) {
-          titleEl.appendChild(badge);
+          targetEl.appendChild(badge);
         }
       } else if (existing) {
         existing.remove();
