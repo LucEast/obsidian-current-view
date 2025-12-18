@@ -220,14 +220,14 @@ export default class CurrentViewSettingsPlugin extends Plugin {
 
     // Context menu for files
     this.registerEvent(
-      this.app.workspace.on("file-menu" as any, (menu, file) => {
+      this.app.workspace.on("file-menu" as any, (menu: Menu, file: TFile) => {
         addLockMenuItems(menu, file.path, "file", this);
       })
     );
 
     // Context menu for folders
     this.registerEvent(
-      this.app.workspace.on("folder-menu" as any, (menu, folder) => {
+      this.app.workspace.on("folder-menu" as any, (menu: Menu, folder: TFolder) => {
         addLockMenuItems(menu, folder.path, "folder", this);
       })
     );
