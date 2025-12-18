@@ -1,3 +1,10 @@
+## [1.0.11](https://github.com/LucEast/obsidian-current-view/compare/1.0.10...1.0.11) (2025-12-18)
+
+
+### Bug Fixes
+
+* trigger release for dependency updates ([f770995](https://github.com/LucEast/obsidian-current-view/commit/f77099580534547e7a1d898585d91698ef09152a))
+
 ## [1.0.10](https://github.com/LucEast/obsidian-current-view/compare/1.0.9...1.0.10) (2025-07-06)
 
 
