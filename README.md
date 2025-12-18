@@ -102,6 +102,14 @@ npm run dev
 
 This will watch your code and build to the `main.js` file on change.
 
+Run tests with:
+
+```bash
+npm run test         # unit tests
+npm run test:watch   # watch mode during development
+npm run coverage     # coverage via V8
+```
+
 ---
 
 ## 📝 License

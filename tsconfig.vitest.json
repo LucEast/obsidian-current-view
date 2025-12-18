@@ -1,0 +1,13 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "types": ["vitest/globals"],
+    "noEmit": true
+  },
+  "include": [
+    "__tests__/**/*.ts",
+    "__mocks__/**/*.ts",
+    "main.ts",
+    "view-mode.ts"
+  ]
+}
