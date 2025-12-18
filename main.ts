@@ -100,11 +100,7 @@ export default class CurrentViewSettingsPlugin extends Plugin {
         })
         .filter((entry): entry is { folder: TFolder; mode: string } => entry !== null)
         .filter((entry) => {
-          return (
-            view.file &&
-            (view.file.parent === entry.folder ||
-              (view.file.parent && view.file.parent.path.startsWith(entry.folder.path)))
-          );
+          return view.file ? isPathWithin(view.file.path, entry.folder.path) : false;
         })
         .sort((a, b) => a.folder.path.length - b.folder.path.length);
 
@@ -276,6 +272,8 @@ export default class CurrentViewSettingsPlugin extends Plugin {
 
   // Called when the plugin is unloaded (e.g., disabled or removed)
   async onunload() {
+    clearDecorations();
+    resetViewsToDefault(this);
     this.openedFiles = [];
   }
 }
@@ -442,6 +440,42 @@ const getTitleElement = (item: any): HTMLElement | null => {
   return candidates.find((el) => !!el) || null;
 };
 
+const isPathWithin = (path: string, maybeParent: string): boolean => {
+  if (!maybeParent) return false;
+  if (path === maybeParent) return true;
+  const parentWithSlash = maybeParent.endsWith("/") ? maybeParent : `${maybeParent}/`;
+  return path.startsWith(parentWithSlash);
+};
+
+const clearDecorations = () => {
+  document.querySelectorAll(".current-view-lock").forEach((el) => el.remove());
+};
+
+const resetViewsToDefault = (plugin: CurrentViewSettingsPlugin) => {
+  const leaves = plugin.app.workspace.getLeavesOfType("markdown");
+  leaves.forEach((leaf) => {
+    const view = leaf.view instanceof MarkdownView ? (leaf.view as MarkdownView) : null;
+    if (!view) return;
+    const state = leaf.getViewState();
+    if (!state.state) return;
+    // @ts-ignore
+    const defaultViewMode = plugin.app.vault.getConfig("defaultViewMode")
+      // @ts-ignore
+      ? plugin.app.vault.getConfig("defaultViewMode")
+      : "source";
+    // @ts-ignore
+    const defaultEditingModeIsLivePreview =
+      // @ts-ignore
+      plugin.app.vault.getConfig("livePreview") === undefined
+        ? true
+        // @ts-ignore
+        : plugin.app.vault.getConfig("livePreview");
+    state.state.mode = defaultViewMode;
+    state.state.source = defaultEditingModeIsLivePreview ? false : true;
+    leaf.setViewState(state);
+  });
+};
+
 const resolveLockModeForPath = (
   plugin: CurrentViewSettingsPlugin,
   path: string
@@ -452,7 +486,7 @@ const resolveLockModeForPath = (
   if (fileRule) return fileRule.mode;
 
   const folderRule = plugin.settings.folderRules
-    .filter((r) => r.path && r.mode && path.startsWith(r.path))
+    .filter((r) => r.path && r.mode && isPathWithin(path, r.path))
     .sort((a, b) => a.path.length - b.path.length)
     .pop();
   if (folderRule) return folderRule.mode;
