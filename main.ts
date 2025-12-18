@@ -98,14 +98,12 @@ export default class CurrentViewSettingsPlugin extends Plugin {
         .sort((a, b) => a.path.length - b.path.length);
 
       for (const { mode } of matchedFolders) {
-        if (!state.state) continue;
         matchedRuleModes.push(mode);
       }
 
       // Check if the file matches a configured pattern and set mode if so
       for (const { pattern, mode } of this.settings.filePatterns) {
         if (!pattern || !mode) continue;
-        if (!state.state) continue;
         if (!view.file || !view.file.basename.match(pattern)) continue;
         matchedRuleModes.push(mode);
       }
@@ -113,14 +111,19 @@ export default class CurrentViewSettingsPlugin extends Plugin {
       // Check explicit per-file rules (highest priority)
       for (const fileRule of this.settings.explicitFileRules) {
         if (!fileRule.path || !fileRule.mode) continue;
-        if (!state.state) continue;
         if (view.file && view.file.path === fileRule.path) {
           matchedRuleModes.push(fileRule.mode);
         }
       }
 
       const rawState = leaf.getViewState();
-      const typedState = rawState as ViewState & { state: MarkdownViewState };    
+      const typedState = rawState as ViewState & { state: MarkdownViewState };
+      if (!typedState.state) {
+        typedState.state = {
+          mode: view.getMode() === "preview" ? "preview" : "source",
+          source: view.getMode() !== "preview",
+        };
+      }
 
       // Read frontmatter value for the custom key
       const fileCache = view.file ? this.app.metadataCache.getFileCache(view.file) : null;
