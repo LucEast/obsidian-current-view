@@ -10,6 +10,8 @@ import {
   debounce,
   ViewState,
   Menu,
+  Notice,
+  setIcon,
 } from "obsidian";
 import { resolveViewModeDecision } from "./view-mode";
 
@@ -22,6 +24,8 @@ interface CurrentViewSettings {
   folderRules: Array<{ path: string; mode: string }>; // Folder rules with assigned view modes
   explicitFileRules: Array<{ path: string; mode: string }>; // Explicit per-file rules
   filePatterns: Array<{ pattern: string; mode: string }>; // File patterns with assigned view modes
+  showExplorerIcons: boolean; // Whether to show lock icons in the file explorer
+  showLockNotifications: boolean; // Whether to show notices when locking/unlocking
 }
 
 // defaults for plugin settings
@@ -33,6 +37,8 @@ const DEFAULT_SETTINGS: CurrentViewSettings = {
   folderRules: [{path: "", mode: ""}],
   explicitFileRules: [],
   filePatterns: [{pattern: "", mode: ""}],
+  showExplorerIcons: true,
+  showLockNotifications: true,
 };
 
 // main plugin class
@@ -308,7 +314,8 @@ const addLockMenuItems = (
   target: LockTarget,
   plugin: CurrentViewSettingsPlugin
 ) => {
-  VIEW_LOCKS.forEach((mode) => {
+  const existing = resolveLockModeForPath(plugin, path);
+  VIEW_LOCKS.filter((mode) => !existing || !existing.includes(mode)).forEach((mode) => {
     menu.addItem((item) => {
       item
         .setTitle(`Lock ${mode.charAt(0).toUpperCase() + mode.slice(1)}`)
@@ -319,15 +326,17 @@ const addLockMenuItems = (
     });
   });
 
-  menu.addSeparator();
-  menu.addItem((item) =>
-    item
-      .setTitle("Unlock")
-      .setIcon("unlock")
-      .onClick(async () => {
-        await removeLock(plugin, target, path);
-      })
-  );
+  if (existing) {
+    menu.addSeparator();
+    menu.addItem((item) =>
+      item
+        .setTitle("Unlock")
+        .setIcon("unlock")
+        .onClick(async () => {
+          await removeLock(plugin, target, path);
+        })
+    );
+  }
 };
 
 const setLock = async (
@@ -350,6 +359,9 @@ const setLock = async (
   }
   await plugin.saveSettings();
   decorateFileExplorer(plugin);
+  if (plugin.settings.showLockNotifications) {
+    new Notice(`${target === "file" ? "File" : "Folder"} locked to ${mode}`);
+  }
 };
 
 const removeLock = async (
@@ -368,9 +380,13 @@ const removeLock = async (
   }
   await plugin.saveSettings();
   decorateFileExplorer(plugin);
+  if (plugin.settings.showLockNotifications) {
+    new Notice(`${target === "file" ? "File" : "Folder"} unlocked`);
+  }
 };
 
 const decorateFileExplorer = (plugin: CurrentViewSettingsPlugin) => {
+  if (!plugin.settings.showExplorerIcons) return;
   const leaves = plugin.app.workspace.getLeavesOfType("file-explorer");
   leaves.forEach((leaf) => {
     const view: any = leaf.view;
@@ -385,12 +401,18 @@ const decorateFileExplorer = (plugin: CurrentViewSettingsPlugin) => {
       if (mode) {
         const badge = existing || document.createElement("span");
         badge.className = "current-view-lock";
-        badge.textContent = renderModeBadge(mode);
         badge.setAttribute("aria-label", `Locked ${mode}`);
         badge.style.marginLeft = "6px";
-        badge.style.fontSize = "10px";
-        badge.style.opacity = "0.7";
-        badge.style.textTransform = "uppercase";
+        badge.style.opacity = "0.8";
+        badge.style.display = "inline-flex";
+        badge.style.alignItems = "center";
+        badge.style.justifyContent = "center";
+        badge.style.width = "14px";
+        badge.style.height = "14px";
+        badge.style.verticalAlign = "middle";
+        badge.style.color = "var(--text-muted)";
+        badge.innerHTML = "";
+        setIcon(badge, renderModeIcon(mode));
         if (!existing) {
           titleEl.appendChild(badge);
         }
@@ -416,10 +438,18 @@ const resolveLockModeForPath = (
 };
 
 const renderModeBadge = (mode: string): string => {
-  if (mode.includes("reading")) return "R";
-  if (mode.includes("live")) return "L";
-  if (mode.includes("source")) return "S";
-  return "?";
+  if (mode.includes("reading")) return "reading";
+  if (mode.includes("live")) return "live";
+  if (mode.includes("source")) return "source";
+  return "unknown";
+};
+
+const renderModeIcon = (mode: string): string => {
+  const normalized = renderModeBadge(mode);
+  if (normalized === "reading") return "book-open";
+  if (normalized === "live") return "pen-tool";
+  if (normalized === "source") return "code";
+  return "lock";
 };
 
 // Settings tab class for the plugin
@@ -663,6 +693,27 @@ class CurrentViewSettingsTab extends PluginSettingTab {
 
     // Heading for explicit file locks
     new Setting(containerEl).setName('Locked files').setHeading();
+    new Setting(containerEl)
+      .setName("Show lock icons in explorer")
+      .setDesc("Toggle inline icons for locked files/folders in the file explorer.")
+      .addToggle((cb) => {
+        cb.setValue(this.plugin.settings.showExplorerIcons).onChange(async (value) => {
+          this.plugin.settings.showExplorerIcons = value;
+          await this.plugin.saveSettings();
+          decorateFileExplorer(this.plugin);
+        });
+      });
+
+    new Setting(containerEl)
+      .setName("Show lock notifications")
+      .setDesc("Show a short notice when locking or unlocking.")
+      .addToggle((cb) => {
+        cb.setValue(this.plugin.settings.showLockNotifications).onChange(async (value) => {
+          this.plugin.settings.showLockNotifications = value;
+          await this.plugin.saveSettings();
+        });
+      });
+
     new Setting(this.containerEl)
       .setDesc("Files locked via context menu. Remove entries to unlock.")
       .addButton((button) => {
