@@ -13,7 +13,7 @@ import {
   Notice,
   setIcon,
 } from "obsidian";
-import { resolveViewModeDecision } from "./view-mode";
+import { resolveViewModeDecision, normalizeFrontmatterMode } from "./view-mode";
 
 // Interface for plugin settings
 interface CurrentViewSettings {
@@ -91,24 +91,26 @@ export default class CurrentViewSettingsPlugin extends Plugin {
       // Collect matched rule modes to resolve priority (folder, then file patterns, then explicit files)
       const matchedRuleModes: string[] = [];
 
-      // Check if the file is in a configured folder and set mode if so
-      for (const folderMode of this.settings.folderRules) {
-        if (folderMode.path !== "" && folderMode.mode) {
+      // Check if the file is in a configured folder and set mode if so (deepest folders win)
+      const matchedFolders = this.settings.folderRules
+        .filter((folderMode) => folderMode.path !== "" && folderMode.mode)
+        .map((folderMode) => {
           const folder = this.app.vault.getAbstractFileByPath(folderMode.path);
-          if (folder instanceof TFolder) {
-            if (
-              view.file &&
-              (view.file.parent === folder || (view.file.parent && view.file.parent.path.startsWith(folder.path)))
-            ) {
-              if (!state.state) {
-                continue;
-              }
-              matchedRuleModes.push(folderMode.mode);
-            }
-          } else {
-            console.warn(`ForceViewMode: Folder ${folderMode.path} does not exist or is not a folder.`);
-          }
-        }
+          return folder instanceof TFolder ? { folder, mode: folderMode.mode } : null;
+        })
+        .filter((entry): entry is { folder: TFolder; mode: string } => entry !== null)
+        .filter((entry) => {
+          return (
+            view.file &&
+            (view.file.parent === entry.folder ||
+              (view.file.parent && view.file.parent.path.startsWith(entry.folder.path)))
+          );
+        })
+        .sort((a, b) => a.folder.path.length - b.folder.path.length);
+
+      for (const { mode } of matchedFolders) {
+        if (!state.state) continue;
+        matchedRuleModes.push(mode);
       }
 
       // Check if the file matches a configured pattern and set mode if so
@@ -448,10 +450,22 @@ const resolveLockModeForPath = (
     (r) => r.path === path && r.mode
   );
   if (fileRule) return fileRule.mode;
-  const folderRule = plugin.settings.folderRules.find(
-    (r) => r.path === path && r.mode
-  );
-  return folderRule ? folderRule.mode : null;
+
+  const folderRule = plugin.settings.folderRules
+    .filter((r) => r.path && r.mode && path.startsWith(r.path))
+    .sort((a, b) => a.path.length - b.path.length)
+    .pop();
+  if (folderRule) return folderRule.mode;
+
+  const file = plugin.app.vault.getAbstractFileByPath(path);
+  if (file instanceof TFile) {
+    const cache = plugin.app.metadataCache.getFileCache(file);
+    const fmValue = cache?.frontmatter?.[plugin.settings.customFrontmatterKey];
+    const normalized = normalizeFrontmatterMode(fmValue);
+    if (normalized) return `${plugin.settings.customFrontmatterKey}: ${normalized}`;
+  }
+
+  return null;
 };
 
 const renderModeBadge = (mode: string): string => {
