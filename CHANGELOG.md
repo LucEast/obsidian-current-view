@@ -1,3 +1,25 @@
+# [1.1.0](https://github.com/LucEast/obsidian-current-view/compare/1.0.11...1.1.0) (2025-12-20)
+
+
+### Bug Fixes
+
+* address type issues for explorer icons ([168194d](https://github.com/LucEast/obsidian-current-view/commit/168194d5d0bf1bb5e7e7f8ba237c3348a5de2983))
+* apply folder locks recursively and show frontmatter icons ([3f28dfc](https://github.com/LucEast/obsidian-current-view/commit/3f28dfcd6ec487659aed09776c81457ffbe9dbf2))
+* ensure lock icons attach in explorer ([de1ab2e](https://github.com/LucEast/obsidian-current-view/commit/de1ab2e6d6ee72a1c23039c58416a251ab989cab))
+* initialize view state to apply folder locks ([650e2bb](https://github.com/LucEast/obsidian-current-view/commit/650e2bb713024b5f4e43ee049e311c1b7cf75ad0))
+* match folder locks by path to apply recursively ([1c8d5c3](https://github.com/LucEast/obsidian-current-view/commit/1c8d5c3e775a3c965dc752e42b312b3d958ecc13))
+* normalize paths case-insensitively for folder locks ([451aa46](https://github.com/LucEast/obsidian-current-view/commit/451aa468c6c7812da08e7ec9edbf794dcb994436))
+* normalize paths when locking folders/files ([c280395](https://github.com/LucEast/obsidian-current-view/commit/c280395649bebd40ee42b21285a339fbad20fb55))
+* recurse folder locks and clean up on unload ([cb67777](https://github.com/LucEast/obsidian-current-view/commit/cb677776174a89c40a24816413ccd157cb117406))
+* target file explorer title element for lock icons ([f890f21](https://github.com/LucEast/obsidian-current-view/commit/f890f2106dd2428bcb55b49df3deaba94da58fd8))
+* type annotate context menu handlers ([166dfc5](https://github.com/LucEast/obsidian-current-view/commit/166dfc5c12976bb8b5bbdc1007b9587ad616cd62))
+
+
+### Features
+
+* improve lock UX with icons and notices ([1bb94d3](https://github.com/LucEast/obsidian-current-view/commit/1bb94d3f81527e6dc9f9c0f09c8884c6bfb7c1bb))
+* lock view mode from file explorer ([d00d227](https://github.com/LucEast/obsidian-current-view/commit/d00d227f42e997facc4ac57e8655cdf560b7cef1))
+
 ## [1.0.11](https://github.com/LucEast/obsidian-current-view/compare/1.0.10...1.0.11) (2025-12-18)
 
 
