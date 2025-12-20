@@ -50,6 +50,8 @@ export default class CurrentViewSettingsPlugin extends Plugin {
   async onload() {
     // load settings
     await this.loadSettings();
+    // migrate any folder locks incorrectly stored as file rules
+    await migrateFolderRules(this);
 
     // Add the settings tab to the Obsidian settings UI
     this.addSettingTab(new CurrentViewSettingsTab(this.app, this));
@@ -216,8 +218,9 @@ export default class CurrentViewSettingsPlugin extends Plugin {
 
     // Context menu for files
     this.registerEvent(
-      this.app.workspace.on("file-menu" as any, (menu: Menu, file: TFile) => {
-        addLockMenuItems(menu, file.path, "file", this);
+      this.app.workspace.on("file-menu" as any, (menu: Menu, file: TFile | TFolder) => {
+        const target: LockTarget = file instanceof TFolder ? "folder" : "file";
+        addLockMenuItems(menu, file.path, target, this);
       })
     );
 
@@ -527,6 +530,37 @@ const renderModeIcon = (mode: string): string => {
   if (normalized === "live") return "pen-tool";
   if (normalized === "source") return "code";
   return "lock";
+};
+
+// Move any folder-like entries accidentally stored as explicit file rules into folder rules
+const migrateFolderRules = async (plugin: CurrentViewSettingsPlugin) => {
+  let changed = false;
+  const remainingFileRules: Array<{ path: string; mode: string }> = [];
+
+  plugin.settings.explicitFileRules.forEach((rule) => {
+    const normalizedPath = normalizePath(rule.path);
+    const looksLikeFolder = !normalizedPath.includes(".");
+    const existsAsFolder =
+      plugin.app.vault.getAbstractFileByPath(rule.path) instanceof TFolder ||
+      plugin.app.vault.getAbstractFileByPath(normalizedPath) instanceof TFolder;
+
+    if ((looksLikeFolder || existsAsFolder) && rule.mode) {
+      const alreadyExists = plugin.settings.folderRules.some(
+        (r) => normalizePath(r.path) === normalizedPath
+      );
+      if (!alreadyExists) {
+        plugin.settings.folderRules.push({ path: normalizedPath, mode: rule.mode });
+      }
+      changed = true;
+    } else {
+      remainingFileRules.push(rule);
+    }
+  });
+
+  if (changed) {
+    plugin.settings.explicitFileRules = remainingFileRules;
+    await plugin.saveSettings();
+  }
 };
 
 // Settings tab class for the plugin
