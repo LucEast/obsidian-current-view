@@ -441,7 +441,12 @@ const getTitleElement = (item: any): HTMLElement | null => {
 };
 
 const normalizePath = (path: string): string => {
-  return path.replace(/^\/+/, "").replace(/\/+$/, "");
+  return path
+    .replace(/\\/g, "/")
+    .replace(/^\/+/, "")
+    .replace(/\/+$/, "")
+    .trim()
+    .toLowerCase();
 };
 
 const isPathWithin = (path: string, maybeParent: string): boolean => {
