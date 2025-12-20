@@ -1,4 +1,5 @@
-import { resolveViewModeDecision } from "../view-mode";
+import { resolveViewModeDecision, normalizeFrontmatterMode } from "../src/lib/view-mode";
+import { normalizePath, isPathWithin } from "../src/config/settings";
 
 const key = "current view";
 
@@ -51,5 +52,19 @@ describe("resolveViewModeDecision", () => {
     });
 
     expect(result).toEqual({ mode: "live", source: "rule" });
+  });
+});
+
+describe("path helpers", () => {
+  test("normalizePath strips slashes, lowercases, and normalizes separators", () => {
+    expect(normalizePath(" /Guides/Note.md/ ")).toBe("guides/note.md");
+    expect(normalizePath("\\Guides\\note.md")).toBe("guides/note.md");
+  });
+
+  test("isPathWithin matches child paths and self", () => {
+    expect(isPathWithin("guides/note.md", "guides")).toBe(true);
+    expect(isPathWithin("guides/sub/note.md", "guides")).toBe(true);
+    expect(isPathWithin("guides", "guides")).toBe(true);
+    expect(isPathWithin("other/note.md", "guides")).toBe(false);
   });
 });

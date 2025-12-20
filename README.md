@@ -26,7 +26,7 @@ Automatically set the view mode (Reading, Live Preview, or Source) of notes in O
   - Folder path
   - File name pattern (RegEx)
   - Frontmatter metadata
-- Right-click files or folders in the file explorer to lock them to Reading/Source/Live and see an icon badge inline.
+- Right-click files or folders in the file explorer to lock them to Reading/Source/Live and see an icon badge inline (icons and notices are toggleable in settings).
 - Supports:
   - `reading` → Preview mode
   - `source` → Source/Markdown mode
@@ -35,6 +35,8 @@ Automatically set the view mode (Reading, Live Preview, or Source) of notes in O
   - Ignore already opened notes
   - Avoid forcing view if frontmatter is missing
   - Debounce view-switching to improve stability
+  - Show/hide file explorer lock icons
+  - Show/hide lock/unlock notices
 
 ---
 
@@ -65,8 +67,9 @@ You can customize the frontmatter key in the plugin settings.
 - `Ignore opened files`: Skips notes that were already open in the workspace
 - `Ignore force view when not in frontmatter`: Don’t override view mode unless it’s explicitly set
 - `Debounce timeout`: Prevents frequent re-triggering when switching between notes
-- `Folder Rules`: Apply view mode to all notes in a specific folder
-- `File Patterns`: Use RegEx patterns to match filenames
+- `Folder Rules`: Apply view mode to all notes in a specific folder (context menu locks write here)
+- `File Patterns`: Use RegEx patterns to match filenames or exact file locks from the context menu
+- `Explorer icons` / `Lock notifications`: toggle UI hints and notices
 
 ---
 

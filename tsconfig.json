@@ -11,6 +11,7 @@
     "importHelpers": true,
     "isolatedModules": true,
     "strictNullChecks": true,
+    "noEmit": true,
     "lib": [
       "DOM",
       "ES5",
@@ -19,7 +20,8 @@
     ]
   },
   "include": [
-    "**/*.ts"
+    "src/**/*.ts",
+    "__tests__/**/*.ts"
   ],
   "exclude": [
     "**/__tests__/**",
