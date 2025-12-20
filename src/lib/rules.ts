@@ -1,4 +1,4 @@
-import { normalizeFrontmatterMode } from "../../view-mode";
+import { normalizeFrontmatterMode } from "./view-mode";
 import type { CurrentViewSettings } from "../config/settings";
 import { normalizePath, isPathWithin } from "../config/settings";
 import { TFile, App } from "obsidian";

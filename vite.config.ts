@@ -5,7 +5,7 @@ export default defineConfig({
   resolve: {
     alias: {
       obsidian: path.resolve(__dirname, "__mocks__/obsidian.ts"),
-      "./view-mode": path.resolve(__dirname, "view-mode.ts"),
+      "./view-mode": path.resolve(__dirname, "src/lib/view-mode.ts"),
       "./main": path.resolve(__dirname, "src/main.ts"),
       "@": path.resolve(__dirname, "src"),
     },

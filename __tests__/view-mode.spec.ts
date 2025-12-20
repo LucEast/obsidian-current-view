@@ -1,4 +1,4 @@
-import { resolveViewModeDecision, normalizeFrontmatterMode } from "../view-mode";
+import { resolveViewModeDecision, normalizeFrontmatterMode } from "../src/lib/view-mode";
 import { normalizePath, isPathWithin } from "../src/config/settings";
 
 const key = "current view";

@@ -10,7 +10,7 @@ import {
   ViewState,
   Menu,
 } from "obsidian";
-import { resolveViewModeDecision } from "../view-mode";
+import { resolveViewModeDecision } from "./lib/view-mode";
 import {
   CurrentViewSettings,
   DEFAULT_SETTINGS,
