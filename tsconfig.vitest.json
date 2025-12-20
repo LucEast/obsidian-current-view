@@ -7,7 +7,8 @@
   "include": [
     "__tests__/**/*.ts",
     "__mocks__/**/*.ts",
-    "main.ts",
-    "view-mode.ts"
+    "src/**/*.ts",
+    "view-mode.ts",
+    "vite.config.ts"
   ]
 }

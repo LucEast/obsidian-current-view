@@ -19,7 +19,9 @@
     ]
   },
   "include": [
-    "**/*.ts"
+    "src/**/*.ts",
+    "__tests__/**/*.ts",
+    "esbuild.config.mjs"
   ],
   "exclude": [
     "**/__tests__/**",
