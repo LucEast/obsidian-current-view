@@ -42,4 +42,14 @@ describe("resolveViewModeDecision", () => {
 
     expect(result).toEqual({ mode: null, source: null });
   });
+
+  test("last matching rule wins, allowing explicit file locks to override", () => {
+    const result = resolveViewModeDecision({
+      matchedRuleModes: [`${key}: reading`, `${key}: source`, `${key}: live`],
+      frontmatterValue: null,
+      customFrontmatterKey: key,
+    });
+
+    expect(result).toEqual({ mode: "live", source: "rule" });
+  });
 });
