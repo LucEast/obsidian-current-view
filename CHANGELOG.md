@@ -1,3 +1,10 @@
+## [1.1.1](https://github.com/LucEast/obsidian-current-view/compare/1.1.0...1.1.1) (2025-12-20)
+
+
+### Bug Fixes
+
+* store file locks as exact patterns and migrate legacy entries ([ae1abc8](https://github.com/LucEast/obsidian-current-view/commit/ae1abc8aae9018e02fe162d53a7f329d038e969a))
+
 # [1.1.0](https://github.com/LucEast/obsidian-current-view/compare/1.0.11...1.1.0) (2025-12-20)
 
 
