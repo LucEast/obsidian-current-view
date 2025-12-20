@@ -22,8 +22,8 @@ interface CurrentViewSettings {
   ignoreAlreadyOpen: boolean; // If true, the plugin will not change the view mode of already opened notes
   ignoreForceViewAll: boolean; // If true, the plugin will not change the view mode of notes opened from another one in a certain view mode
   folderRules: Array<{ path: string; mode: string }>; // Folder rules with assigned view modes
-  explicitFileRules: Array<{ path: string; mode: string }>; // Explicit per-file rules
-  filePatterns: Array<{ pattern: string; mode: string }>; // File patterns with assigned view modes
+  explicitFileRules: Array<{ path: string; mode: string }>; // Explicit per-file rules (legacy; will migrate to filePatterns)
+  filePatterns: Array<{ pattern: string; mode: string }>; // File patterns with assigned view modes (also used for exact file locks)
   showExplorerIcons: boolean; // Whether to show lock icons in the file explorer
   showLockNotifications: boolean; // Whether to show notices when locking/unlocking
 }
@@ -35,7 +35,7 @@ const DEFAULT_SETTINGS: CurrentViewSettings = {
   ignoreAlreadyOpen: false,
   ignoreForceViewAll: false,
   folderRules: [{path: "", mode: ""}],
-  explicitFileRules: [],
+  explicitFileRules: [], // legacy
   filePatterns: [{pattern: "", mode: ""}],
   showExplorerIcons: true,
   showLockNotifications: true,
@@ -52,6 +52,8 @@ export default class CurrentViewSettingsPlugin extends Plugin {
     await this.loadSettings();
     // migrate any folder locks incorrectly stored as file rules
     await migrateFolderRules(this);
+    // migrate explicit file rules into filePatterns (exact matches)
+    await migrateFileLocks(this);
 
     // Add the settings tab to the Obsidian settings UI
     this.addSettingTab(new CurrentViewSettingsTab(this.app, this));
@@ -108,17 +110,15 @@ export default class CurrentViewSettingsPlugin extends Plugin {
       // Check if the file matches a configured pattern and set mode if so
       for (const { pattern, mode } of this.settings.filePatterns) {
         if (!pattern || !mode) continue;
-        if (!view.file || !view.file.basename.match(pattern)) continue;
+        if (!view.file) continue;
+        const normalizedPattern = normalizePath(pattern);
+        const normalizedFile = normalizePath(view.file.path);
+        const directMatch = normalizedPattern === normalizedFile || view.file.basename.match(pattern);
+        if (!directMatch) continue;
         matchedRuleModes.push(mode);
       }
 
-      // Check explicit per-file rules (highest priority)
-      for (const fileRule of this.settings.explicitFileRules) {
-        if (!fileRule.path || !fileRule.mode) continue;
-        if (view.file && view.file.path === fileRule.path) {
-          matchedRuleModes.push(fileRule.mode);
-        }
-      }
+      // explicitFileRules are legacy; migrated to filePatterns
 
       const rawState = leaf.getViewState();
       const typedState = rawState as ViewState & { state: MarkdownViewState };
@@ -349,9 +349,9 @@ const setLock = async (
   const normalizedPath = normalizePath(path);
   const modeValue = `${plugin.settings.customFrontmatterKey}: ${mode}`;
   if (target === "file") {
-    plugin.settings.explicitFileRules = [
-      ...plugin.settings.explicitFileRules.filter((r) => normalizePath(r.path) !== normalizedPath),
-      { path: normalizedPath, mode: modeValue },
+    plugin.settings.filePatterns = [
+      ...plugin.settings.filePatterns.filter((r) => normalizePath(r.pattern) !== normalizedPath),
+      { pattern: normalizedPath, mode: modeValue },
     ];
   } else {
     plugin.settings.folderRules = [
@@ -373,8 +373,8 @@ const removeLock = async (
 ) => {
   const normalizedPath = normalizePath(path);
   if (target === "file") {
-    plugin.settings.explicitFileRules = plugin.settings.explicitFileRules.filter(
-      (r) => normalizePath(r.path) !== normalizedPath
+    plugin.settings.filePatterns = plugin.settings.filePatterns.filter(
+      (r) => normalizePath(r.pattern) !== normalizedPath
     );
   } else {
     plugin.settings.folderRules = plugin.settings.folderRules.filter(
@@ -495,8 +495,8 @@ const resolveLockModeForPath = (
   path: string
 ): string | null => {
   const normalizedPath = normalizePath(path);
-  const fileRule = plugin.settings.explicitFileRules.find(
-    (r) => normalizePath(r.path) === normalizedPath && r.mode
+  const fileRule = plugin.settings.filePatterns.find(
+    (r) => normalizePath(r.pattern) === normalizedPath && r.mode
   );
   if (fileRule) return fileRule.mode;
 
@@ -559,6 +559,26 @@ const migrateFolderRules = async (plugin: CurrentViewSettingsPlugin) => {
 
   if (changed) {
     plugin.settings.explicitFileRules = remainingFileRules;
+    await plugin.saveSettings();
+  }
+};
+
+// Move explicitFileRules into filePatterns as exact matches
+const migrateFileLocks = async (plugin: CurrentViewSettingsPlugin) => {
+  if (!plugin.settings.explicitFileRules.length) return;
+  let changed = false;
+  plugin.settings.explicitFileRules.forEach((rule) => {
+    const normalizedPath = normalizePath(rule.path);
+    const exists = plugin.settings.filePatterns.some(
+      (p) => normalizePath(p.pattern) === normalizedPath
+    );
+    if (!exists) {
+      plugin.settings.filePatterns.push({ pattern: normalizedPath, mode: rule.mode });
+      changed = true;
+    }
+  });
+  if (changed) {
+    plugin.settings.explicitFileRules = [];
     await plugin.saveSettings();
   }
 };
