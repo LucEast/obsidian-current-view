@@ -94,7 +94,9 @@ export default class CurrentViewSettingsPlugin extends Plugin {
       // Check if the file is in a configured folder and set mode if so (deepest folders win)
       const matchedFolders = this.settings.folderRules
         .filter((folderMode) => folderMode.path !== "" && folderMode.mode)
-        .filter((folderMode) => (view.file ? isPathWithin(view.file.path, folderMode.path) : false))
+        .filter((folderMode) =>
+          view.file ? isPathWithin(normalizePath(view.file.path), normalizePath(folderMode.path)) : false
+        )
         .sort((a, b) => a.path.length - b.path.length);
 
       for (const { mode } of matchedFolders) {
@@ -341,16 +343,17 @@ const setLock = async (
   path: string,
   mode: ViewLockMode
 ) => {
+  const normalizedPath = normalizePath(path);
   const modeValue = `${plugin.settings.customFrontmatterKey}: ${mode}`;
   if (target === "file") {
     plugin.settings.explicitFileRules = [
-      ...plugin.settings.explicitFileRules.filter((r) => r.path !== path),
-      { path, mode: modeValue },
+      ...plugin.settings.explicitFileRules.filter((r) => normalizePath(r.path) !== normalizedPath),
+      { path: normalizedPath, mode: modeValue },
     ];
   } else {
     plugin.settings.folderRules = [
-      ...plugin.settings.folderRules.filter((r) => r.path !== path),
-      { path, mode: modeValue },
+      ...plugin.settings.folderRules.filter((r) => normalizePath(r.path) !== normalizedPath),
+      { path: normalizedPath, mode: modeValue },
     ];
   }
   await plugin.saveSettings();
@@ -365,13 +368,14 @@ const removeLock = async (
   target: LockTarget,
   path: string
 ) => {
+  const normalizedPath = normalizePath(path);
   if (target === "file") {
     plugin.settings.explicitFileRules = plugin.settings.explicitFileRules.filter(
-      (r) => r.path !== path
+      (r) => normalizePath(r.path) !== normalizedPath
     );
   } else {
     plugin.settings.folderRules = plugin.settings.folderRules.filter(
-      (r) => r.path !== path
+      (r) => normalizePath(r.path) !== normalizedPath
     );
   }
   await plugin.saveSettings();
@@ -436,11 +440,17 @@ const getTitleElement = (item: any): HTMLElement | null => {
   return candidates.find((el) => !!el) || null;
 };
 
+const normalizePath = (path: string): string => {
+  return path.replace(/^\/+/, "").replace(/\/+$/, "");
+};
+
 const isPathWithin = (path: string, maybeParent: string): boolean => {
-  if (!maybeParent) return false;
-  if (path === maybeParent) return true;
-  const parentWithSlash = maybeParent.endsWith("/") ? maybeParent : `${maybeParent}/`;
-  return path.startsWith(parentWithSlash);
+  const child = normalizePath(path);
+  const parent = normalizePath(maybeParent);
+  if (!parent) return false;
+  if (child === parent) return true;
+  const parentWithSlash = `${parent}/`;
+  return child.startsWith(parentWithSlash);
 };
 
 const clearDecorations = () => {
@@ -476,13 +486,14 @@ const resolveLockModeForPath = (
   plugin: CurrentViewSettingsPlugin,
   path: string
 ): string | null => {
+  const normalizedPath = normalizePath(path);
   const fileRule = plugin.settings.explicitFileRules.find(
-    (r) => r.path === path && r.mode
+    (r) => normalizePath(r.path) === normalizedPath && r.mode
   );
   if (fileRule) return fileRule.mode;
 
   const folderRule = plugin.settings.folderRules
-    .filter((r) => r.path && r.mode && isPathWithin(path, r.path))
+    .filter((r) => r.path && r.mode && isPathWithin(normalizedPath, r.path))
     .sort((a, b) => a.path.length - b.path.length)
     .pop();
   if (folderRule) return folderRule.mode;
