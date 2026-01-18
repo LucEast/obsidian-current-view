@@ -1,3 +1,16 @@
+# [1.2.0-beta.1](https://github.com/LucEast/obsidian-current-view/compare/1.1.1...1.2.0-beta.1) (2026-01-18)
+
+
+### Bug Fixes
+
+* use raw frontmatter value for view mode resolution ([ba4f2bb](https://github.com/LucEast/obsidian-current-view/commit/ba4f2bb10af25f98f4cc606ea1ed613543edf9d5))
+
+
+### Features
+
+* add beta branch for prereleases ([8e3b4e1](https://github.com/LucEast/obsidian-current-view/commit/8e3b4e1931b7bc02c1e2f869ebfa57b67911de66))
+* add Notebook Navigator plugin compatibility ([4b6cf13](https://github.com/LucEast/obsidian-current-view/commit/4b6cf13cd56a9715d2af85ee59af75f05c4fb3fa))
+
 ## [1.1.1](https://github.com/LucEast/obsidian-current-view/compare/1.1.0...1.1.1) (2025-12-20)
 
 
