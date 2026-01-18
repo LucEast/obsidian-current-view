@@ -17,7 +17,7 @@ import {
   migrateFolderRules,
   migrateFileLocks,
 } from "./config/settings";
-import { collectMatchedRules, resolveFrontmatterMode } from "./lib/rules";
+import { collectMatchedRules } from "./lib/rules";
 import { addLockMenuItems, decorateFileExplorer, clearDecorations, LockTarget } from "./ui/context-menu";
 import { normalizePath, isPathWithin } from "./config/settings";
 import { CurrentViewSettingsTab } from "./ui/settings-tab";
@@ -75,15 +75,12 @@ export default class CurrentViewSettingsPlugin extends Plugin {
         };
       }
 
-      const fmMode = resolveFrontmatterMode(
-        this.app,
-        view.file,
-        this.settings.customFrontmatterKey
-      );
+      const fileCache = view.file ? this.app.metadataCache.getFileCache(view.file) : null;
+      const rawFrontmatterValue = fileCache?.frontmatter?.[this.settings.customFrontmatterKey] ?? null;
 
       const { mode: resolvedMode, source } = resolveViewModeDecision({
         matchedRuleModes,
-        frontmatterValue: fmMode,
+        frontmatterValue: rawFrontmatterValue,
         customFrontmatterKey: this.settings.customFrontmatterKey,
       });
 
