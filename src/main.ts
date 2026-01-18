@@ -19,6 +19,7 @@ import {
 } from "./config/settings";
 import { collectMatchedRules } from "./lib/rules";
 import { addLockMenuItems, decorateFileExplorer, clearDecorations, LockTarget } from "./ui/context-menu";
+import { initNotebookNavigatorIntegration, destroyNotebookNavigatorIntegration, decorateNotebookNavigator } from "./ui/notebook-navigator";
 import { normalizePath, isPathWithin } from "./config/settings";
 import { CurrentViewSettingsTab } from "./ui/settings-tab";
 
@@ -163,7 +164,10 @@ export default class CurrentViewSettingsPlugin extends Plugin {
       })
     );
 
-    const refreshDecorations = () => decorateFileExplorer(this);
+    const refreshDecorations = () => {
+      decorateFileExplorer(this);
+      decorateNotebookNavigator(this);
+    };
     this.registerEvent(this.app.workspace.on("layout-change", refreshDecorations));
     this.registerEvent(
       this.app.vault.on("rename", async (file, oldPath) => {
@@ -191,6 +195,9 @@ export default class CurrentViewSettingsPlugin extends Plugin {
     );
 
     refreshDecorations();
+
+    // Initialize Notebook Navigator integration (if installed)
+    initNotebookNavigatorIntegration(this);
   }
 
   async loadSettings() {
@@ -203,6 +210,7 @@ export default class CurrentViewSettingsPlugin extends Plugin {
 
   async onunload() {
     clearDecorations();
+    destroyNotebookNavigatorIntegration();
     resetViewsToDefault(this);
     this.openedFiles = [];
   }
