@@ -13,29 +13,50 @@ export class CurrentViewSettingsTab extends PluginSettingTab {
     let { containerEl } = this;
     containerEl.empty();
 
-    new Setting(this.containerEl)
-      .setDesc(createFragment((f) => {
-        f.appendText("You can control the view mode of a note using frontmatter or rules.Possible values are 'reading' (Preview), 'source' (Source Mode), or 'live' (Live Preview). You can also set a custom frontmatter key to control the view mode, which is currently set to:");
-      }));
+    // Introduction
+    containerEl.createDiv({ 
+      text: "Control view modes (Reading, Live Preview, Source) for your notes using frontmatter or rules.",
+      cls: "setting-item-description"
+    });
+
+    // === General Settings ===
+    new Setting(containerEl).setName("General").setHeading();
 
     new Setting(containerEl)
-      .setName("Frontmatter key for view mode")
-      .setDesc("Custom frontmatter key used to define the view mode. Default is 'current view'.")
+      .setName("Frontmatter key")
+      .setDesc("Custom frontmatter field to define view mode per note.")
       .addText((text) => {
         text
           .setPlaceholder("current view")
           .setValue(this.plugin.settings.customFrontmatterKey)
           .onChange(async (value) => {
-            this.plugin.settings.customFrontmatterKey = value;
+            this.plugin.settings.customFrontmatterKey = value || "current view";
             await this.plugin.saveSettings();
+            this.display(); // Refresh to update dropdowns
           });
       });
 
     new Setting(containerEl)
-      .setName("Ignore opened files")
-      .setDesc("Never change the view mode on a note which was already open.")
-      .addToggle((checkbox) =>
-        checkbox
+      .setName("Debounce timeout")
+      .setDesc("Delay in milliseconds before applying view mode. Set to 0 to disable. Increase if experiencing issues.")
+      .addText((cb) => {
+        cb.setPlaceholder("300")
+          .setValue(String(this.plugin.settings.debounceTimeout))
+          .onChange(async (value) => {
+            const num = Number(value);
+            this.plugin.settings.debounceTimeout = isNaN(num) ? 300 : num;
+            await this.plugin.saveSettings();
+          });
+      });
+
+    // === Behavior ===
+    new Setting(containerEl).setName("Behavior").setHeading();
+
+    new Setting(containerEl)
+      .setName("Ignore already opened files")
+      .setDesc("Don't change view mode for notes that are already open in the workspace.")
+      .addToggle((toggle) =>
+        toggle
           .setValue(this.plugin.settings.ignoreAlreadyOpen)
           .onChange(async (value) => {
             this.plugin.settings.ignoreAlreadyOpen = value;
@@ -44,12 +65,10 @@ export class CurrentViewSettingsTab extends PluginSettingTab {
       );
 
     new Setting(containerEl)
-      .setName("Ignore force view when not in frontmatter")
-      .setDesc(
-        "Never change the view mode on a note that was opened from another one in a certain view mode"
-      )
-      .addToggle((checkbox) => {
-        checkbox
+      .setName("Require frontmatter to force view")
+      .setDesc("Only apply rules if the note has an explicit frontmatter view mode set.")
+      .addToggle((toggle) => {
+        toggle
           .setValue(this.plugin.settings.ignoreForceViewAll)
           .onChange(async (value) => {
             this.plugin.settings.ignoreForceViewAll = value;
@@ -57,18 +76,31 @@ export class CurrentViewSettingsTab extends PluginSettingTab {
           });
       });
 
+    // === Visual Feedback ===
+    new Setting(containerEl).setName("Visual Feedback").setHeading();
+
     new Setting(containerEl)
-      .setName("Debounce timeout in milliseconds")
-      .setDesc(
-        `Debounce timeout is the time in milliseconds after which the view mode is set. Set "0" to disable debouncing (default value is "300"). If you experience issues with the plugin, try increasing this value.`
-      )
-      .addText((cb) => {
-        cb.setValue(String(this.plugin.settings.debounceTimeout)).onChange(
-          async (value) => {
-            this.plugin.settings.debounceTimeout = Number(value);
+      .setName("Show lock icons")
+      .setDesc("Display lock status icons next to files and folders in File Explorer and Notebook Navigator.")
+      .addToggle((toggle) => {
+        toggle
+          .setValue(this.plugin.settings.showExplorerIcons)
+          .onChange(async (value) => {
+            this.plugin.settings.showExplorerIcons = value;
             await this.plugin.saveSettings();
-          }
-        );
+          });
+      });
+
+    new Setting(containerEl)
+      .setName("Show lock notifications")
+      .setDesc("Display a notice when locking or unlocking files/folders via context menu.")
+      .addToggle((toggle) => {
+        toggle
+          .setValue(this.plugin.settings.showLockNotifications)
+          .onChange(async (value) => {
+            this.plugin.settings.showLockNotifications = value;
+            await this.plugin.saveSettings();
+          });
       });
 
     const modes = [
@@ -78,22 +110,18 @@ export class CurrentViewSettingsTab extends PluginSettingTab {
       `${this.plugin.settings.customFrontmatterKey}: live`,
     ];
 
-    new Setting(containerEl).setName('Folders').setHeading();
+    // === Folder Rules ===
+    new Setting(containerEl).setName("Folder Rules").setHeading();
+    
+    new Setting(containerEl)
+      .setDesc("Apply view mode to all notes in a folder. Use the context menu (right-click) on folders to quickly lock them. Order matters: rules are checked from bottom (highest priority) to top (lowest priority).");
 
-    new Setting(this.containerEl)
-      .setDesc(createFragment((f) => {
-        f.appendText("Specify a view mode for notes in a given folder.");
-        f.createEl("br");
-        f.appendText("Note that this will force the view mode on all the notes in the folder, even if they have a different view mode set in their frontmatter.");
-        f.createEl("br");
-        f.appendText("Precedence is from bottom (highest) to top (lowest), so if you have child folders specified, make sure to put them below their parent folder.");
-      }));
-
-    new Setting(this.containerEl)
-      .setDesc("Add new folder")
+    new Setting(containerEl)
+      .setName("Add folder rule")
+      .setDesc("Click to add a new folder rule")
       .addButton((button) => {
         button
-          .setTooltip("Add another folder to the list")
+          .setTooltip("Add folder rule")
           .setButtonText("+")
           .setCta()
           .onClick(async () => {
@@ -153,24 +181,18 @@ export class CurrentViewSettingsTab extends PluginSettingTab {
       div.appendChild(containerEl.lastChild as Node);
     });
 
-    new Setting(containerEl).setName('Files').setHeading();
+    // === File Pattern Rules ===
+    new Setting(containerEl).setName("File Pattern Rules").setHeading();
+    
+    new Setting(containerEl)
+      .setDesc("Match files using RegEx patterns or exact paths. Use the context menu (right-click) on files to quickly lock them. Examples: \" - All$\" (files ending with \" - All\"), \"^2024-\" (files starting with \"2024-\"). Note: File patterns override folder rules for matching files.");
 
-    new Setting(this.containerEl)
-      .setDesc(createFragment((f) => {
-        f.appendText("Specify a view mode for notes with specific patterns (regular expression; example \" - All$\" for all notes ending with \" - All\" or \"1900-01\" for all daily notes starting with \"1900-01\"");
-        f.createEl("br");
-        f.appendText("Note that this will force the view mode, even if it have a different view mode set in its frontmatter.");
-        f.createEl("br");
-        f.appendText("Precedence is from bottom (highest) to top (lowest).");
-        f.createEl("br");
-        f.appendText("Notice that configuring a file pattern will override the folder configuration for the same file.");
-      }));
-
-    new Setting(this.containerEl)
-      .setDesc("Add new file")
+    new Setting(containerEl)
+      .setName("Add file pattern")
+      .setDesc("Click to add a new file pattern rule")
       .addButton((button) => {
         button
-          .setTooltip("Add another file to the list")
+          .setTooltip("Add file pattern")
           .setButtonText("+")
           .setCta()
           .onClick(async () => {
@@ -227,63 +249,6 @@ export class CurrentViewSettingsTab extends PluginSettingTab {
       div.appendChild(containerEl.lastChild as Node);
     });
 
-    new Setting(containerEl).setName('Locked files').setHeading();
-    new Setting(containerEl)
-      .setName("Show lock icons in explorer")
-      .setDesc("Toggle inline icons for locked files/folders in the file explorer.")
-      .addToggle((cb) => {
-        cb.setValue(this.plugin.settings.showExplorerIcons).onChange(async (value) => {
-          this.plugin.settings.showExplorerIcons = value;
-          await this.plugin.saveSettings();
-        });
-      });
 
-    new Setting(containerEl)
-      .setName("Show lock notifications")
-      .setDesc("Show a short notice when locking or unlocking.")
-      .addToggle((cb) => {
-        cb.setValue(this.plugin.settings.showLockNotifications).onChange(async (value) => {
-          this.plugin.settings.showLockNotifications = value;
-          await this.plugin.saveSettings();
-        });
-      });
-
-    this.plugin.settings.filePatterns
-      .filter((rule) => rule.pattern && rule.mode)
-      .forEach((rule, index) => {
-        const s = new Setting(this.containerEl)
-          .addText((cb) => {
-            cb.setPlaceholder("folder/file.md")
-              .setValue(rule.pattern)
-              .onChange(async (value) => {
-                this.plugin.settings.filePatterns[index].pattern = value;
-                await this.plugin.saveSettings();
-              });
-          })
-          .addDropdown((cb) => {
-            const modes = [
-              "default",
-              `${this.plugin.settings.customFrontmatterKey}: reading`,
-              `${this.plugin.settings.customFrontmatterKey}: source`,
-              `${this.plugin.settings.customFrontmatterKey}: live`,
-            ];
-            modes.forEach((mode) => cb.addOption(mode, mode));
-            cb.setValue(rule.mode || "default").onChange(async (value) => {
-              this.plugin.settings.filePatterns[index].mode = value;
-              await this.plugin.saveSettings();
-            });
-          })
-          .addExtraButton((cb) => {
-            cb.setIcon("cross")
-              .setTooltip("Delete")
-              .onClick(async () => {
-                this.plugin.settings.filePatterns.splice(index, 1);
-                await this.plugin.saveSettings();
-                this.display();
-              });
-          });
-
-        s.infoEl.remove();
-      });
   }
 }

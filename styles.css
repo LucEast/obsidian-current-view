@@ -1,0 +1,26 @@
+/* Current View Plugin Styles */
+
+/* Lock Icons in File Explorer and Notebook Navigator */
+.current-view-lock,
+.current-view-lock-nn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 4px;
+  opacity: 0.7;
+  vertical-align: middle;
+  flex-shrink: 0;
+}
+
+.current-view-lock svg,
+.current-view-lock-nn svg {
+  width: 12px;
+  height: 12px;
+  color: var(--text-muted);
+}
+
+/* File Explorer specific */
+.nav-file-title:hover .current-view-lock,
+.nav-folder-title:hover .current-view-lock {
+  opacity: 1;
+}
