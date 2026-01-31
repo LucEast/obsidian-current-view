@@ -1,3 +1,10 @@
+# [1.2.0-beta.2](https://github.com/LucEast/obsidian-current-view/compare/1.2.0-beta.1...1.2.0-beta.2) (2026-01-31)
+
+
+### Features
+
+* added Notebook-Navigator support ([64454c7](https://github.com/LucEast/obsidian-current-view/commit/64454c7e8436f2f90e2ffb3f6972fbdaf7f09305))
+
 # [1.2.0-beta.1](https://github.com/LucEast/obsidian-current-view/compare/1.1.1...1.2.0-beta.1) (2026-01-18)
 
 
