@@ -1,98 +1,154 @@
 /**
  * Notebook Navigator Integration
  *
- * This module provides compatibility with the Notebook Navigator plugin
- * by using MutationObserver to inject lock menu items and file icons.
+ * This module provides compatibility with the Notebook Navigator plugin:
+ * - Uses the official Notebook Navigator API (v1.2.0+) for context menu items
+ * - Uses MutationObserver for file icon decorations (since no API exists for that yet)
  *
- * Notebook Navigator doesn't fire standard Obsidian events (file-menu, folder-menu),
- * so we need to observe DOM changes and inject our UI elements.
+ * The menu API provides a clean, reliable way to add lock/unlock menu items
+ * without DOM hacking.
  */
 
-import { Menu, TFile, TFolder, setIcon } from "obsidian";
+import { setIcon } from "obsidian";
 import type CurrentViewSettingsPlugin from "../main";
 import type { ViewLockMode } from "../lib/rules";
 import { resolveLockModeForPath } from "../lib/rules";
 import { setLock, removeLock, LockTarget } from "./context-menu";
+import type { NotebookNavigatorAPI, MenuExtensionDispose } from "../types/notebook-navigator";
 
 const VIEW_LOCKS: ViewLockMode[] = ["reading", "source", "live"];
 
-let menuObserver: MutationObserver | null = null;
 let fileListObserver: MutationObserver | null = null;
-let lastContextMenuTarget: { path: string; type: LockTarget } | null = null;
+let fileMenuDispose: MenuExtensionDispose | null = null;
+let folderMenuDispose: MenuExtensionDispose | null = null;
+
+/**
+ * Get the Notebook Navigator API if available
+ */
+const getNotebookNavigatorAPI = (plugin: CurrentViewSettingsPlugin): NotebookNavigatorAPI | null => {
+  // @ts-ignore - accessing plugin registry
+  const api = plugin.app.plugins?.plugins?.['notebook-navigator']?.api as NotebookNavigatorAPI | undefined;
+  return api ?? null;
+};
 
 /**
  * Initialize Notebook Navigator integration
  */
 export const initNotebookNavigatorIntegration = (plugin: CurrentViewSettingsPlugin) => {
-  // Watch for context menus appearing
-  setupMenuObserver(plugin);
+  // Try to register immediately
+  tryRegisterMenus(plugin);
+  
+  // Also try again after a delay, in case Notebook Navigator loads after us
+  setTimeout(() => {
+    if (!fileMenuDispose && !folderMenuDispose) {
+      tryRegisterMenus(plugin);
+    }
+  }, 1000);
 
   // Watch for file list changes to add icons
   setupFileListObserver(plugin);
+};
 
-  // Capture right-click target on nn-file and nn-folder elements
-  document.addEventListener("contextmenu", handleContextMenu, true);
+/**
+ * Try to register menu items with Notebook Navigator
+ */
+const tryRegisterMenus = (plugin: CurrentViewSettingsPlugin) => {
+  const api = getNotebookNavigatorAPI(plugin);
+  
+  if (api?.menus) {
+    // Register menu items using the official API
+    fileMenuDispose = api.menus.registerFileMenu(({ addItem, file, selection }) => {
+      if (selection.mode !== 'single') {
+        return; // Only show menu for single file selection
+      }
+      
+      addLockMenuItemsToNotebookNavigator(addItem, file.path, "file", plugin);
+    });
+
+    folderMenuDispose = api.menus.registerFolderMenu(({ addItem, folder }) => {
+      addLockMenuItemsToNotebookNavigator(addItem, folder.path, "folder", plugin);
+    });
+  }
 };
 
 /**
  * Cleanup observers and listeners
  */
 export const destroyNotebookNavigatorIntegration = () => {
-  menuObserver?.disconnect();
-  menuObserver = null;
+  // Dispose menu registrations
+  fileMenuDispose?.();
+  fileMenuDispose = null;
+  folderMenuDispose?.();
+  folderMenuDispose = null;
+  
+  // Cleanup file list observer
   fileListObserver?.disconnect();
   fileListObserver = null;
-  document.removeEventListener("contextmenu", handleContextMenu, true);
-  lastContextMenuTarget = null;
+  
   clearNotebookNavigatorDecorations();
 };
 
 /**
- * Capture the file/folder path when right-clicking on Notebook Navigator elements
+ * Add lock/unlock menu items using Notebook Navigator's menu API
  */
-const handleContextMenu = (e: MouseEvent) => {
-  const target = e.target as HTMLElement;
+const addLockMenuItemsToNotebookNavigator = (
+  addItem: (cb: (item: import("obsidian").MenuItem) => void) => void,
+  path: string,
+  type: LockTarget,
+  plugin: CurrentViewSettingsPlugin
+) => {
+  const existing = resolveLockModeForPath(plugin.app, plugin.settings, path);
 
-  // Find the nearest nn-file or nn-folder element
-  const fileEl = target.closest(".nn-file") as HTMLElement | null;
-  const folderEl = target.closest("[class*='nn-folder']") as HTMLElement | null;
+  // Add lock options for modes that aren't already set
+  VIEW_LOCKS.filter((mode) => !existing || !existing.includes(mode)).forEach((mode) => {
+    addItem((item) => {
+      item
+        .setTitle(`Lock ${mode.charAt(0).toUpperCase() + mode.slice(1)}`)
+        .setIcon("lock")
+        .onClick(async () => {
+          await setLock(plugin, type, path, mode);
+          decorateNotebookNavigator(plugin);
+        });
+    });
+  });
 
-  if (fileEl) {
-    // Extract path from data attribute or aria-label
-    const path = extractPathFromElement(fileEl);
-    if (path) {
-      lastContextMenuTarget = { path, type: "file" };
-    }
-  } else if (folderEl) {
-    const path = extractPathFromElement(folderEl);
-    if (path) {
-      lastContextMenuTarget = { path, type: "folder" };
-    }
-  } else {
-    lastContextMenuTarget = null;
+  // Add unlock option if currently locked
+  if (existing) {
+    addItem((item) => {
+      item
+        .setTitle("Unlock")
+        .setIcon("unlock")
+        .onClick(async () => {
+          await removeLock(plugin, type, path);
+          decorateNotebookNavigator(plugin);
+        });
+    });
   }
 };
 
 /**
  * Extract file/folder path from a Notebook Navigator element
+ * (Still needed for icon decorations)
  */
 const extractPathFromElement = (el: HTMLElement): string | null => {
-  // Try data-path attribute
-  const dataPath = el.getAttribute("data-path");
-  if (dataPath) return dataPath;
-
-  // Try to find path in child elements
-  const titleEl = el.querySelector(".nn-file-title, .nn-folder-title");
-  if (titleEl) {
-    const path = titleEl.getAttribute("data-path");
-    if (path) return path;
+  // Try data-path attribute on element itself (most common for .nn-file)
+  let dataPath = el.getAttribute("data-path");
+  if (dataPath) {
+    return dataPath;
   }
 
-  // Try aria-label which often contains the filename
+  // Try to find data-path in ANY child element
+  const childWithPath = el.querySelector("[data-path]");
+  if (childWithPath) {
+    dataPath = childWithPath.getAttribute("data-path");
+    if (dataPath) {
+      return dataPath;
+    }
+  }
+
+  // Try aria-label as fallback
   const ariaLabel = el.getAttribute("aria-label");
   if (ariaLabel) {
-    // aria-label might be just the filename, not full path
-    // We'll need to resolve this through the app
     return ariaLabel;
   }
 
@@ -100,108 +156,8 @@ const extractPathFromElement = (el: HTMLElement): string | null => {
 };
 
 /**
- * Watch for Obsidian menu elements appearing and inject our items
- */
-const setupMenuObserver = (plugin: CurrentViewSettingsPlugin) => {
-  menuObserver = new MutationObserver((mutations) => {
-    for (const mutation of mutations) {
-      const addedNodes = Array.from(mutation.addedNodes);
-      for (const node of addedNodes) {
-        if (node instanceof HTMLElement && node.classList.contains("menu")) {
-          // Check if this is likely a Notebook Navigator menu
-          if (lastContextMenuTarget) {
-            injectMenuItems(node, plugin, lastContextMenuTarget);
-          }
-        }
-      }
-    }
-  });
-
-  menuObserver.observe(document.body, {
-    childList: true,
-    subtree: false, // Menus are added directly to body
-  });
-};
-
-/**
- * Inject lock/unlock menu items into a Notebook Navigator context menu
- */
-const injectMenuItems = (
-  menuEl: HTMLElement,
-  plugin: CurrentViewSettingsPlugin,
-  target: { path: string; type: LockTarget }
-) => {
-  // Resolve the actual file/folder path
-  const resolvedPath = resolvePathInVault(plugin, target.path, target.type);
-  if (!resolvedPath) return;
-
-  const existing = resolveLockModeForPath(plugin.app, plugin.settings, resolvedPath);
-
-  // Find the menu items container
-  const menuContainer = menuEl.querySelector(".menu") || menuEl;
-
-  // Add a separator before our items
-  const separator = document.createElement("div");
-  separator.className = "menu-separator";
-  menuContainer.appendChild(separator);
-
-  // Add lock options for modes that aren't already set
-  VIEW_LOCKS.filter((mode) => !existing || !existing.includes(mode)).forEach((mode) => {
-    const menuItem = createMenuItem(
-      `Lock ${mode.charAt(0).toUpperCase() + mode.slice(1)}`,
-      "lock",
-      async () => {
-        await setLock(plugin, target.type, resolvedPath, mode);
-        decorateNotebookNavigator(plugin);
-      }
-    );
-    menuContainer.appendChild(menuItem);
-  });
-
-  // Add unlock option if currently locked
-  if (existing) {
-    const unlockItem = createMenuItem("Unlock", "unlock", async () => {
-      await removeLock(plugin, target.type, resolvedPath);
-      decorateNotebookNavigator(plugin);
-    });
-    menuContainer.appendChild(unlockItem);
-  }
-};
-
-/**
- * Create a menu item element matching Obsidian's style
- */
-const createMenuItem = (
-  title: string,
-  icon: string,
-  onClick: () => void
-): HTMLElement => {
-  const item = document.createElement("div");
-  item.className = "menu-item";
-  item.addEventListener("click", (e) => {
-    e.stopPropagation();
-    onClick();
-    // Close the menu
-    const menu = item.closest(".menu");
-    if (menu) menu.remove();
-  });
-
-  const iconEl = document.createElement("div");
-  iconEl.className = "menu-item-icon";
-  setIcon(iconEl, icon);
-
-  const titleEl = document.createElement("div");
-  titleEl.className = "menu-item-title";
-  titleEl.textContent = title;
-
-  item.appendChild(iconEl);
-  item.appendChild(titleEl);
-
-  return item;
-};
-
-/**
  * Resolve a path (which might be just a filename) to a full vault path
+ * (Still needed for icon decorations)
  */
 const resolvePathInVault = (
   plugin: CurrentViewSettingsPlugin,
@@ -253,7 +209,7 @@ const setupFileListObserver = (plugin: CurrentViewSettingsPlugin) => {
 };
 
 /**
- * Add lock icons to Notebook Navigator file items
+ * Add lock icons to Notebook Navigator file and folder items
  */
 export const decorateNotebookNavigator = (plugin: CurrentViewSettingsPlugin) => {
   if (!plugin.settings.showExplorerIcons) {
@@ -261,9 +217,9 @@ export const decorateNotebookNavigator = (plugin: CurrentViewSettingsPlugin) => 
     return;
   }
 
-  // Find all nn-file elements
+  // Decorate files in the file list
   const fileItems = document.querySelectorAll(".nn-file");
-
+  
   fileItems.forEach((fileEl) => {
     const path = extractPathFromElement(fileEl as HTMLElement);
     if (!path) return;
@@ -272,34 +228,64 @@ export const decorateNotebookNavigator = (plugin: CurrentViewSettingsPlugin) => 
     if (!resolvedPath) return;
 
     const mode = resolveLockModeForPath(plugin.app, plugin.settings, resolvedPath);
-    const titleEl = fileEl.querySelector(".nn-file-title") as HTMLElement | null;
+    
+    // Look for .nn-file-name (where we'll add the icon)
+    const titleEl = fileEl.querySelector(".nn-file-name") as HTMLElement;
     if (!titleEl) return;
 
-    const existing = titleEl.querySelector(".current-view-lock-nn") as HTMLElement | null;
-
-    if (mode) {
-      const badge: HTMLElement = existing || document.createElement("span");
-      badge.className = "current-view-lock-nn";
-      badge.setAttribute("aria-label", `Locked ${mode}`);
-      badge.style.marginLeft = "4px";
-      badge.style.opacity = "0.7";
-      badge.style.display = "inline-flex";
-      badge.style.alignItems = "center";
-      badge.style.justifyContent = "center";
-      badge.style.width = "12px";
-      badge.style.height = "12px";
-      badge.style.verticalAlign = "middle";
-      badge.style.color = "var(--text-muted)";
-      badge.style.flexShrink = "0";
-      badge.innerHTML = "";
-      setIcon(badge, renderModeIcon(mode));
-      if (!existing) {
-        titleEl.appendChild(badge);
-      }
-    } else if (existing) {
-      existing.remove();
-    }
+    // Always call addLockBadge - it will remove the badge if mode is null
+    addLockBadge(titleEl, mode);
   });
+
+  // Decorate folders in the navigation pane
+  const folderItems = document.querySelectorAll(".nn-folder");
+  
+  folderItems.forEach((folderEl) => {
+    const path = extractPathFromElement(folderEl as HTMLElement);
+    if (!path) return;
+
+    const resolvedPath = resolvePathInVault(plugin, path, "folder");
+    if (!resolvedPath) return;
+
+    const mode = resolveLockModeForPath(plugin.app, plugin.settings, resolvedPath);
+    
+    // Look for .nn-navitem-name (where we'll add the icon)
+    const titleEl = folderEl.querySelector(".nn-navitem-name") as HTMLElement;
+    if (!titleEl) return;
+
+    // Always call addLockBadge - it will remove the badge if mode is null
+    addLockBadge(titleEl, mode);
+  });
+};
+
+/**
+ * Add or update lock badge on a title element
+ */
+const addLockBadge = (titleEl: HTMLElement, mode: string | null) => {
+  const existing = titleEl.querySelector(".current-view-lock-nn") as HTMLElement | null;
+
+  if (mode) {
+    const badge: HTMLElement = existing || document.createElement("span");
+    badge.className = "current-view-lock-nn";
+    badge.setAttribute("aria-label", `Locked ${mode}`);
+    badge.style.marginLeft = "4px";
+    badge.style.opacity = "0.7";
+    badge.style.display = "inline-flex";
+    badge.style.alignItems = "center";
+    badge.style.justifyContent = "center";
+    badge.style.width = "12px";
+    badge.style.height = "12px";
+    badge.style.verticalAlign = "middle";
+    badge.style.color = "var(--text-muted)";
+    badge.style.flexShrink = "0";
+    badge.innerHTML = "";
+    setIcon(badge, renderModeIcon(mode));
+    if (!existing) {
+      titleEl.appendChild(badge);
+    }
+  } else if (existing) {
+    existing.remove();
+  }
 };
 
 /**
