@@ -6,6 +6,20 @@
 * add Notebook Navigator plugin compatibility ([4b6cf13](https://github.com/LucEast/obsidian-current-view/commit/4b6cf13cd56a9715d2af85ee59af75f05c4fb3fa))
 * added Notebook-Navigator support ([64454c7](https://github.com/LucEast/obsidian-current-view/commit/64454c7e8436f2f90e2ffb3f6972fbdaf7f09305))
 
+# [1.3.0-beta.3](https://github.com/LucEast/obsidian-current-view/compare/1.3.0-beta.2...1.3.0-beta.3) (2026-02-01)
+
+
+### Features
+
+* add manifest-beta.json for BRAT compatibility ([9355290](https://github.com/LucEast/obsidian-current-view/commit/9355290))
+
+# [1.3.0-beta.2](https://github.com/LucEast/obsidian-current-view/compare/1.3.0-beta.1...1.3.0-beta.2) (2026-02-01)
+
+
+### Bug Fixes
+
+* create beta releases as normal GitHub releases for Obsidian compatibility ([ccc0ab7](https://github.com/LucEast/obsidian-current-view/commit/ccc0ab71c7e4b55cd8672d507a6fa07c3e4dc949))
+
 # [1.3.0-beta.1](https://github.com/LucEast/obsidian-current-view/compare/1.2.0...1.3.0-beta.1) (2026-01-31)
 
 
