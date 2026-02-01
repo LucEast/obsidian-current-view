@@ -1,7 +1,7 @@
 {
   "branches": [
     "main",
-    {"name": "beta", "prerelease": true}
+    {"name": "beta", "prerelease": "beta"}
   ],
   "tagFormat": "${version}",
   "plugins": [
@@ -48,7 +48,10 @@
         }
       ],
       "successComment": false,
-      "failComment": false
+      "failComment": false,
+      "releasedLabels": false,
+      "draftRelease": false,
+      "prerelease": false
     }],
     ["@semantic-release/git", {
       "assets": [
