@@ -1,3 +1,10 @@
+# [1.3.0-beta.3](https://github.com/LucEast/obsidian-current-view/compare/1.3.0-beta.2...1.3.0-beta.3) (2026-02-01)
+
+
+### Features
+
+* add manifest-beta.json for BRAT compatibility ([9355290](https://github.com/LucEast/obsidian-current-view/commit/935529078225756c05004a5257e103dde0c57b56))
+
 # [1.3.0-beta.2](https://github.com/LucEast/obsidian-current-view/compare/1.3.0-beta.1...1.3.0-beta.2) (2026-02-01)
 
 
