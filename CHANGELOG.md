@@ -1,3 +1,10 @@
+## [1.4.1](https://github.com/LucEast/obsidian-current-view/compare/1.4.0...1.4.1) (2026-02-28)
+
+
+### Bug Fixes
+
+* skip redundant setViewState calls ([ac07e3f](https://github.com/LucEast/obsidian-current-view/commit/ac07e3f28d46d84107f7f7b323f6513981813129))
+
 # [1.4.0](https://github.com/LucEast/obsidian-current-view/compare/1.3.0...1.4.0) (2026-02-01)
 
 
