@@ -1,3 +1,10 @@
+## [1.4.2](https://github.com/LucEast/obsidian-current-view/compare/1.4.1...1.4.2) (2026-03-01)
+
+
+### Bug Fixes
+
+* frontmatter key input loses focus on every keystroke ([04f11ab](https://github.com/LucEast/obsidian-current-view/commit/04f11ab2c9ad9bf8bc37ba166958dce3bbdef4c3)), closes [#34](https://github.com/LucEast/obsidian-current-view/issues/34)
+
 ## [1.4.1](https://github.com/LucEast/obsidian-current-view/compare/1.4.0...1.4.1) (2026-02-28)
 
 
