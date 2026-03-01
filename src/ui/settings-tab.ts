@@ -32,8 +32,9 @@ export class CurrentViewSettingsTab extends PluginSettingTab {
           .onChange(async (value) => {
             this.plugin.settings.customFrontmatterKey = value || "current view";
             await this.plugin.saveSettings();
-            this.display(); // Refresh to update dropdowns
           });
+        // Refresh dropdowns only after the user leaves the field, not on every keystroke
+        text.inputEl.addEventListener("blur", () => this.display());
       });
 
     new Setting(containerEl)
