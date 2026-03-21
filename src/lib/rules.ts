@@ -3,6 +3,16 @@ import type { CurrentViewSettings } from "../config/settings";
 import { normalizePath, isPathWithin } from "../config/settings";
 import { TFile, App } from "obsidian";
 
+export const getFileTags = (app: App, file: TFile | null): string[] => {
+  const cache = file ? app.metadataCache.getFileCache(file) : null;
+  const raw = cache?.frontmatter?.["tags"];
+  if (!raw) return [];
+  const tags = Array.isArray(raw) ? raw : [raw];
+  return tags
+    .filter((t): t is string => typeof t === "string")
+    .map((t) => t.replace(/^#/, "").toLowerCase().trim());
+};
+
 export type ViewLockMode = "reading" | "source" | "live";
 
 export const collectMatchedRules = (
@@ -23,6 +33,16 @@ export const collectMatchedRules = (
 
   for (const { mode } of matchedFolders) {
     matchedRuleModes.push(mode);
+  }
+
+  // Tag rules
+  const fileTags = getFileTags(app, file);
+  for (const { tag, mode } of settings.tagRules) {
+    if (!tag || !mode) continue;
+    const normalizedTag = tag.replace(/^#/, "").toLowerCase().trim();
+    if (fileTags.includes(normalizedTag)) {
+      matchedRuleModes.push(mode);
+    }
   }
 
   // File patterns (exact path or basename regex)
@@ -69,6 +89,13 @@ export const resolveLockModeForPath = (
 
   const file = app.vault.getAbstractFileByPath(path);
   if (file instanceof TFile) {
+    const fileTags = getFileTags(app, file);
+    for (const { tag, mode } of settings.tagRules) {
+      if (!tag || !mode) continue;
+      const normalizedTag = tag.replace(/^#/, "").toLowerCase().trim();
+      if (fileTags.includes(normalizedTag)) return mode;
+    }
+
     const fmMode = resolveFrontmatterMode(app, file, settings.customFrontmatterKey);
     if (fmMode) return fmMode;
   }
