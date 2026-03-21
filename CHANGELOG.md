@@ -1,3 +1,10 @@
+# [1.5.0](https://github.com/LucEast/obsidian-current-view/compare/1.4.2...1.5.0) (2026-03-21)
+
+
+### Features
+
+* add tag rules for automatic view mode by tag ([0ecae43](https://github.com/LucEast/obsidian-current-view/commit/0ecae4359a83d843d4ccc4316f098b0497475f8c)), closes [#38](https://github.com/LucEast/obsidian-current-view/issues/38)
+
 ## [1.4.2](https://github.com/LucEast/obsidian-current-view/compare/1.4.1...1.4.2) (2026-03-01)
 
 
