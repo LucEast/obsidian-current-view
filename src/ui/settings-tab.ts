@@ -32,8 +32,9 @@ export class CurrentViewSettingsTab extends PluginSettingTab {
           .onChange(async (value) => {
             this.plugin.settings.customFrontmatterKey = value || "current view";
             await this.plugin.saveSettings();
-            this.display(); // Refresh to update dropdowns
           });
+        // Refresh dropdowns only after the user leaves the field, not on every keystroke
+        text.inputEl.addEventListener("blur", () => this.display());
       });
 
     new Setting(containerEl)
@@ -172,6 +173,71 @@ export class CurrentViewSettingsTab extends PluginSettingTab {
             .setTooltip("Delete")
             .onClick(async () => {
               this.plugin.settings.folderRules.splice(index, 1);
+              await this.plugin.saveSettings();
+              this.display();
+            });
+        });
+
+      s.infoEl.remove();
+      div.appendChild(containerEl.lastChild as Node);
+    });
+
+    // === Tag Rules ===
+    new Setting(containerEl).setName("Tag Rules").setHeading();
+
+    new Setting(containerEl)
+      .setDesc("Apply view mode to notes that have a specific tag. Tag rules override folder rules but can be overridden by file pattern rules.");
+
+    new Setting(containerEl)
+      .setName("Add tag rule")
+      .setDesc("Click to add a new tag rule")
+      .addButton((button) => {
+        button
+          .setTooltip("Add tag rule")
+          .setButtonText("+")
+          .setCta()
+          .onClick(async () => {
+            this.plugin.settings.tagRules.push({ tag: "", mode: "" });
+            await this.plugin.saveSettings();
+            this.display();
+          });
+      });
+
+    this.plugin.settings.tagRules.forEach((tagRule, index) => {
+      const div = containerEl.createEl("div");
+      div.addClass("force-view-mode-div");
+      div.addClass("force-view-mode-folder");
+
+      const s = new Setting(this.containerEl)
+        .addSearch((cb) => {
+          cb.setPlaceholder("Example: sent, published")
+            .setValue(tagRule.tag)
+            .onChange(async (value) => {
+              if (
+                value &&
+                this.plugin.settings.tagRules.some((e) => e.tag === value)
+              ) {
+                console.error("ForceViewMode: Tag rule already exists", value);
+                return;
+              }
+              this.plugin.settings.tagRules[index].tag = value;
+              await this.plugin.saveSettings();
+            });
+        })
+        .addDropdown((cb) => {
+          modes.forEach((mode) => {
+            cb.addOption(mode, mode);
+          });
+          cb.setValue(tagRule.mode || "default").onChange(async (value) => {
+            this.plugin.settings.tagRules[index].mode = value;
+            await this.plugin.saveSettings();
+          });
+        })
+        .addExtraButton((cb) => {
+          cb.setIcon("cross")
+            .setTooltip("Delete")
+            .onClick(async () => {
+              this.plugin.settings.tagRules.splice(index, 1);
               await this.plugin.saveSettings();
               this.display();
             });

@@ -42,6 +42,7 @@ Automatically applies the right view mode when opening notes based on your rules
 Configure view modes based on:
 - **📁 Folder paths** – All notes in `Templates/` open in Source mode
 - **🔍 File patterns** – Match files using RegEx (e.g., all daily notes)
+- **🏷️ Tag rules** – Match notes by Obsidian tags (e.g., all notes tagged `sent` open in Reading mode)
 - **📋 Frontmatter** – Per-note control with custom metadata field
 
 <p align="center">
@@ -85,9 +86,10 @@ When you open a note, Current View checks for view mode rules in this order:
 
 ```
 1. File Pattern Rules  →  Exact path match or RegEx pattern
-2. Folder Rules        →  Deepest matching folder wins
-3. Frontmatter         →  Per-note override
-4. Obsidian Default    →  Your global Obsidian setting
+2. Tag Rules           →  Any matching tag in frontmatter
+3. Folder Rules        →  Deepest matching folder wins
+4. Frontmatter         →  Per-note override
+5. Obsidian Default    →  Your global Obsidian setting
 ```
 
 <!-- TODO: Add diagram showing priority flow -->
@@ -100,6 +102,11 @@ When you open a note, Current View checks for view mode rules in this order:
 - You open `Templates/meeting-note.md`
 - The note has frontmatter: `current view: reading`
 - **Result:** Opens in **Reading mode** (frontmatter wins)
+
+**Example with tag rule:**
+- You have a tag rule: `sent` → Reading mode
+- You open a note with `tags: [sent]` in its frontmatter
+- **Result:** Opens in **Reading mode** (tag rule applies automatically)
 
 ---
 
@@ -140,6 +147,14 @@ Folder: Templates/
 Mode: source
 ```
 
+**📬 Published/sent notes:**
+```yaml
+# Notes tagged with 'sent' or 'published' open in Reading mode
+Tag: sent
+Mode: reading
+```
+Any note with `tags: [sent]` in its frontmatter will automatically open in Reading mode.
+
 <!-- TODO: Add screenshot of common configurations -->
 <!-- <p align="center">
   <img src="assets/use-cases.png" alt="Common use case configurations" width="600" />
@@ -177,6 +192,7 @@ Mode: source
 ### Rules Configuration
 
 - **Folder Rules**: Apply view mode to all notes in a folder (context menu locks write here)
+- **Tag Rules**: Apply view mode to notes that have a specific tag
 - **File Patterns**: RegEx patterns or exact file paths (context menu file locks write here)
 
 ---

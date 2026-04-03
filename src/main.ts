@@ -107,17 +107,22 @@ export default class CurrentViewSettingsPlugin extends Plugin {
             this.app.vault.getConfig("livePreview");
 
       if (!this.settings.ignoreForceViewAll) {
-        let state = leaf.getViewState();
+        const beforeMode = typedState.state.mode;
+        const beforeSource = typedState.state.source;
 
-        if (state.state) {
-          if (view.getMode() !== defaultViewMode) {
-            state.state.mode = defaultViewMode;
+        const desiredMode = view.getMode() !== defaultViewMode ? defaultViewMode : beforeMode;
+        const desiredSource = !defaultEditingModeIsLivePreview;
+
+        const shouldUpdate =
+          desiredMode !== beforeMode || (desiredMode === "source" && desiredSource !== beforeSource);
+
+        if (shouldUpdate) {
+          typedState.state.mode = desiredMode;
+          if (desiredMode === "source") {
+            typedState.state.source = desiredSource;
           }
-
-          state.state.source = defaultEditingModeIsLivePreview ? false : true;
+          await leaf.setViewState(typedState);
         }
-
-        await leaf.setViewState(state);
 
         this.openedFiles = resetOpenedNotes(this.app);
       }
@@ -129,16 +134,24 @@ export default class CurrentViewSettingsPlugin extends Plugin {
       view: MarkdownView,
       leaf: WorkspaceLeaf
     ) => {
-      if (value === "reading") {
-        viewState.state.mode = "preview";
-        viewState.state.source = false;
-      } else if (value === "source") {
-        viewState.state.mode = "source";
-        viewState.state.source = true;
-      } else if (value === "live") {
-        viewState.state.mode = "source";
-        viewState.state.source = false;
+      const beforeMode = viewState.state.mode;
+      const beforeSource = viewState.state.source;
+
+      const desiredMode: MarkdownViewState["mode"] = value === "reading" ? "preview" : "source";
+      const desiredSource = value === "source";
+
+      const shouldUpdate =
+        desiredMode !== beforeMode || (desiredMode === "source" && desiredSource !== beforeSource);
+
+      if (!shouldUpdate) {
+        return;
       }
+
+      viewState.state.mode = desiredMode;
+      if (desiredMode === "source") {
+        viewState.state.source = desiredSource;
+      }
+
       await leaf.setViewState(viewState);
     };
 

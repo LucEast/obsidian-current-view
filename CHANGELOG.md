@@ -1,3 +1,24 @@
+# [1.5.0](https://github.com/LucEast/obsidian-current-view/compare/1.4.2...1.5.0) (2026-03-21)
+
+
+### Features
+
+* add tag rules for automatic view mode by tag ([0ecae43](https://github.com/LucEast/obsidian-current-view/commit/0ecae4359a83d843d4ccc4316f098b0497475f8c)), closes [#38](https://github.com/LucEast/obsidian-current-view/issues/38)
+
+## [1.4.2](https://github.com/LucEast/obsidian-current-view/compare/1.4.1...1.4.2) (2026-03-01)
+
+
+### Bug Fixes
+
+* frontmatter key input loses focus on every keystroke ([04f11ab](https://github.com/LucEast/obsidian-current-view/commit/04f11ab2c9ad9bf8bc37ba166958dce3bbdef4c3)), closes [#34](https://github.com/LucEast/obsidian-current-view/issues/34)
+
+## [1.4.1](https://github.com/LucEast/obsidian-current-view/compare/1.4.0...1.4.1) (2026-02-28)
+
+
+### Bug Fixes
+
+* skip redundant setViewState calls ([ac07e3f](https://github.com/LucEast/obsidian-current-view/commit/ac07e3f28d46d84107f7f7b323f6513981813129))
+
 # [1.4.0](https://github.com/LucEast/obsidian-current-view/compare/1.3.0...1.4.0) (2026-02-01)
 
 
