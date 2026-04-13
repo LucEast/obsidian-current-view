@@ -1,3 +1,11 @@
+## [1.5.1](https://github.com/LucEast/obsidian-current-view/compare/1.5.0...1.5.1) (2026-04-13)
+
+
+### Bug Fixes
+
+* reduce input lag caused by MutationObserver and vault queries in Notebook Navigator integration ([36406ac](https://github.com/LucEast/obsidian-current-view/commit/36406ac48749392f51cbcf412913be7182e26b81))
+* reduce input lag caused by MutationObserver and vault queries in Notebook Navigator integration ([ad110f7](https://github.com/LucEast/obsidian-current-view/commit/ad110f7f00bdd2cff86a221b9eec54231157fe03))
+
 # [1.5.0](https://github.com/LucEast/obsidian-current-view/compare/1.4.2...1.5.0) (2026-03-21)
 
 
