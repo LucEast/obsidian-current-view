@@ -21,6 +21,7 @@ const VIEW_LOCKS: ViewLockMode[] = ["reading", "source", "live"];
 let fileListObserver: MutationObserver | null = null;
 let fileMenuDispose: MenuExtensionDispose | null = null;
 let folderMenuDispose: MenuExtensionDispose | null = null;
+let decorateDebounceTimer: ReturnType<typeof setTimeout> | null = null;
 
 /**
  * Get the Notebook Navigator API if available
@@ -80,8 +81,12 @@ export const destroyNotebookNavigatorIntegration = () => {
   fileMenuDispose = null;
   folderMenuDispose?.();
   folderMenuDispose = null;
-  
-  // Cleanup file list observer
+
+  // Cleanup file list observer and pending debounce
+  if (decorateDebounceTimer) {
+    clearTimeout(decorateDebounceTimer);
+    decorateDebounceTimer = null;
+  }
   fileListObserver?.disconnect();
   fileListObserver = null;
   
@@ -194,8 +199,11 @@ const resolvePathInVault = (
  */
 const setupFileListObserver = (plugin: CurrentViewSettingsPlugin) => {
   fileListObserver = new MutationObserver(() => {
-    // Debounce decoration updates
-    requestAnimationFrame(() => decorateNotebookNavigator(plugin));
+    if (decorateDebounceTimer) clearTimeout(decorateDebounceTimer);
+    decorateDebounceTimer = setTimeout(() => {
+      decorateDebounceTimer = null;
+      decorateNotebookNavigator(plugin);
+    }, 150);
   });
 
   // Observe the entire document for nn-file elements
@@ -217,18 +225,34 @@ export const decorateNotebookNavigator = (plugin: CurrentViewSettingsPlugin) => 
     return;
   }
 
+  // Build lookup maps once per decoration pass (avoid O(N×M) vault queries)
+  const allFiles = plugin.app.vault.getFiles();
+  const filePathByName = new Map<string, string>();
+  for (const f of allFiles) {
+    filePathByName.set(f.path, f.path);
+    filePathByName.set(f.name, f.path);
+    filePathByName.set(f.basename, f.path);
+  }
+
+  const allFolders = plugin.app.vault.getAllFolders();
+  const folderPathByName = new Map<string, string>();
+  for (const f of allFolders) {
+    folderPathByName.set(f.path, f.path);
+    folderPathByName.set(f.name, f.path);
+  }
+
   // Decorate files in the file list
   const fileItems = document.querySelectorAll(".nn-file");
-  
+
   fileItems.forEach((fileEl) => {
     const path = extractPathFromElement(fileEl as HTMLElement);
     if (!path) return;
 
-    const resolvedPath = resolvePathInVault(plugin, path, "file");
+    const resolvedPath = filePathByName.get(path) ?? null;
     if (!resolvedPath) return;
 
     const mode = resolveLockModeForPath(plugin.app, plugin.settings, resolvedPath);
-    
+
     // Look for .nn-file-name (where we'll add the icon)
     const titleEl = fileEl.querySelector(".nn-file-name") as HTMLElement;
     if (!titleEl) return;
@@ -239,16 +263,16 @@ export const decorateNotebookNavigator = (plugin: CurrentViewSettingsPlugin) => 
 
   // Decorate folders in the navigation pane
   const folderItems = document.querySelectorAll(".nn-folder");
-  
+
   folderItems.forEach((folderEl) => {
     const path = extractPathFromElement(folderEl as HTMLElement);
     if (!path) return;
 
-    const resolvedPath = resolvePathInVault(plugin, path, "folder");
+    const resolvedPath = folderPathByName.get(path) ?? null;
     if (!resolvedPath) return;
 
     const mode = resolveLockModeForPath(plugin.app, plugin.settings, resolvedPath);
-    
+
     // Look for .nn-navitem-name (where we'll add the icon)
     const titleEl = folderEl.querySelector(".nn-navitem-name") as HTMLElement;
     if (!titleEl) return;

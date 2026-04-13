@@ -207,10 +207,29 @@ Any note with `tags: [sent]` in its frontmatter will automatically open in Readi
 
 ### Via BRAT
 
+Use BRAT only if you want to test beta builds before they are released in the Obsidian Community Plugins directory.
+
 1. Install [BRAT](https://github.com/TfTHacker/obsidian42-brat) plugin
 2. In BRAT settings, click **Add Beta Plugin**
 3. Enter: `LucEast/obsidian-current-view`
-4. Enable the plugin in Community Plugins
+4. In BRAT, choose the latest beta release (for example <!-- README_BETA_VERSION_EXAMPLE_START -->`1.5.0-beta.1`<!-- README_BETA_VERSION_EXAMPLE_END -->)
+5. Enable the plugin in Community Plugins
+
+### Beta Channel Notes
+
+- Stable releases use plain versions like <!-- README_STABLE_VERSION_EXAMPLE_START -->`1.5.0`<!-- README_STABLE_VERSION_EXAMPLE_END --> and are distributed through the Obsidian Community Plugins directory.
+- Beta releases use versions like <!-- README_BETA_VERSION_EXAMPLE_START -->`1.5.0-beta.1`<!-- README_BETA_VERSION_EXAMPLE_END --> and are distributed through GitHub Releases for BRAT testers.
+- Obsidian does not fully support semantic version pre-release handling for community plugins. If you install <!-- README_BETA_VERSION_EXAMPLE_START -->`1.5.0-beta.1`<!-- README_BETA_VERSION_EXAMPLE_END --> via BRAT, Obsidian may not automatically switch you to the stable <!-- README_STABLE_VERSION_EXAMPLE_START -->`1.5.0`<!-- README_STABLE_VERSION_EXAMPLE_END --> release later.
+- If you test beta builds, treat BRAT as a separate release channel.
+
+### Return From Beta To Stable
+
+If you want to leave the beta channel and go back to the normal Community Plugins release track:
+
+1. Open BRAT and switch this plugin to the stable release if available there
+2. Or uninstall the BRAT-managed beta version
+3. Reinstall **Current View** from **Settings** → **Community Plugins**
+4. Future stable updates should continue normally from the Community Plugins directory
 
 ### Manual Installation
 
