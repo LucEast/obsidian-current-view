@@ -25,7 +25,7 @@
 		"esbuild": "0.27.2",
 		"obsidian": "latest",
 		"tslib": "2.8.1",
-		"typescript": "5.9.3",
+		"typescript": "6.0.3",
 		"vitest": "^1.6.0"
 	},
 	"dependencies": {
