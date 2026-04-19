@@ -24,3 +24,8 @@
 .nav-folder-title:hover .current-view-lock {
   opacity: 1;
 }
+
+.nav-file-title.is-active .current-view-lock svg,
+.nav-folder-title.is-active .current-view-lock svg {
+  color: var(--text-on-accent);
+}
