@@ -1,3 +1,10 @@
+## [1.5.2](https://github.com/LucEast/obsidian-current-view/compare/1.5.1...1.5.2) (2026-04-21)
+
+
+### Bug Fixes
+
+* improve lock icon contrast on active sidebar items ([8622d2b](https://github.com/LucEast/obsidian-current-view/commit/8622d2b5892ea34f681f8cbc30c8c76def7bebbe))
+
 ## [1.5.1](https://github.com/LucEast/obsidian-current-view/compare/1.5.0...1.5.1) (2026-04-13)
 
 
