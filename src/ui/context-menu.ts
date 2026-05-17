@@ -1,4 +1,4 @@
-import { Menu, Notice, TFolder, TFile, setIcon } from "obsidian";
+import { Menu, Notice, setIcon } from "obsidian";
 import type CurrentViewSettingsPlugin from "../main";
 import type { ViewLockMode } from "../lib/rules";
 import { normalizePath } from "../config/settings";
@@ -106,18 +106,8 @@ export const decorateFileExplorer = (plugin: CurrentViewSettingsPlugin) => {
       }
 
       if (mode) {
-        const badge: HTMLElement = existing || document.createElement("span");
-        badge.className = "current-view-lock";
+        const badge: HTMLElement = existing ?? createSpan({ cls: "current-view-lock" });
         badge.setAttribute("aria-label", `Locked ${mode}`);
-        badge.style.marginLeft = "6px";
-        badge.style.opacity = "0.8";
-        badge.style.display = "inline-flex";
-        badge.style.alignItems = "center";
-        badge.style.justifyContent = "center";
-        badge.style.width = "14px";
-        badge.style.height = "14px";
-        badge.style.verticalAlign = "middle";
-        badge.style.color = "var(--text-muted)";
         badge.innerHTML = "";
         setIcon(badge, renderModeIcon(mode));
         if (!existing) {
@@ -158,5 +148,5 @@ const renderModeIcon = (mode: string): string => {
 };
 
 export const clearDecorations = () => {
-  document.querySelectorAll(".current-view-lock").forEach((el) => el.remove());
+  activeDocument.querySelectorAll(".current-view-lock").forEach((el) => el.remove());
 };

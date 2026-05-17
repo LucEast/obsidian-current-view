@@ -21,7 +21,7 @@ const VIEW_LOCKS: ViewLockMode[] = ["reading", "source", "live"];
 let fileListObserver: MutationObserver | null = null;
 let fileMenuDispose: MenuExtensionDispose | null = null;
 let folderMenuDispose: MenuExtensionDispose | null = null;
-let decorateDebounceTimer: ReturnType<typeof setTimeout> | null = null;
+let decorateDebounceTimer: number | null = null;
 
 /**
  * Get the Notebook Navigator API if available
@@ -40,7 +40,7 @@ export const initNotebookNavigatorIntegration = (plugin: CurrentViewSettingsPlug
   tryRegisterMenus(plugin);
   
   // Also try again after a delay, in case Notebook Navigator loads after us
-  setTimeout(() => {
+  activeWindow.setTimeout(() => {
     if (!fileMenuDispose && !folderMenuDispose) {
       tryRegisterMenus(plugin);
     }
@@ -84,7 +84,7 @@ export const destroyNotebookNavigatorIntegration = () => {
 
   // Cleanup file list observer and pending debounce
   if (decorateDebounceTimer) {
-    clearTimeout(decorateDebounceTimer);
+    activeWindow.clearTimeout(decorateDebounceTimer);
     decorateDebounceTimer = null;
   }
   fileListObserver?.disconnect();
@@ -161,53 +161,19 @@ const extractPathFromElement = (el: HTMLElement): string | null => {
 };
 
 /**
- * Resolve a path (which might be just a filename) to a full vault path
- * (Still needed for icon decorations)
- */
-const resolvePathInVault = (
-  plugin: CurrentViewSettingsPlugin,
-  path: string,
-  type: LockTarget
-): string | null => {
-  // If it's already a valid path, return it
-  const abstractFile = plugin.app.vault.getAbstractFileByPath(path);
-  if (abstractFile) {
-    return abstractFile.path;
-  }
-
-  // Try to find file by name
-  if (type === "file") {
-    const files = plugin.app.vault.getFiles();
-    const match = files.find(
-      (f) => f.basename === path || f.name === path || f.path === path
-    );
-    if (match) return match.path;
-  }
-
-  // For folders, try common patterns
-  if (type === "folder") {
-    const folders = plugin.app.vault.getAllFolders();
-    const match = folders.find((f) => f.name === path || f.path === path);
-    if (match) return match.path;
-  }
-
-  return null;
-};
-
-/**
  * Watch for Notebook Navigator file list changes to add lock icons
  */
 const setupFileListObserver = (plugin: CurrentViewSettingsPlugin) => {
   fileListObserver = new MutationObserver(() => {
-    if (decorateDebounceTimer) clearTimeout(decorateDebounceTimer);
-    decorateDebounceTimer = setTimeout(() => {
+    if (decorateDebounceTimer) activeWindow.clearTimeout(decorateDebounceTimer);
+    decorateDebounceTimer = activeWindow.setTimeout(() => {
       decorateDebounceTimer = null;
       decorateNotebookNavigator(plugin);
     }, 150);
   });
 
   // Observe the entire document for nn-file elements
-  fileListObserver.observe(document.body, {
+  fileListObserver.observe(activeDocument.body, {
     childList: true,
     subtree: true,
   });
@@ -242,7 +208,7 @@ export const decorateNotebookNavigator = (plugin: CurrentViewSettingsPlugin) => 
   }
 
   // Decorate files in the file list
-  const fileItems = document.querySelectorAll(".nn-file");
+  const fileItems = activeDocument.querySelectorAll(".nn-file");
 
   fileItems.forEach((fileEl) => {
     const path = extractPathFromElement(fileEl as HTMLElement);
@@ -262,7 +228,7 @@ export const decorateNotebookNavigator = (plugin: CurrentViewSettingsPlugin) => 
   });
 
   // Decorate folders in the navigation pane
-  const folderItems = document.querySelectorAll(".nn-folder");
+  const folderItems = activeDocument.querySelectorAll(".nn-folder");
 
   folderItems.forEach((folderEl) => {
     const path = extractPathFromElement(folderEl as HTMLElement);
@@ -289,19 +255,8 @@ const addLockBadge = (titleEl: HTMLElement, mode: string | null) => {
   const existing = titleEl.querySelector(".current-view-lock-nn") as HTMLElement | null;
 
   if (mode) {
-    const badge: HTMLElement = existing || document.createElement("span");
-    badge.className = "current-view-lock-nn";
+    const badge: HTMLElement = existing ?? createSpan({ cls: "current-view-lock-nn" });
     badge.setAttribute("aria-label", `Locked ${mode}`);
-    badge.style.marginLeft = "4px";
-    badge.style.opacity = "0.7";
-    badge.style.display = "inline-flex";
-    badge.style.alignItems = "center";
-    badge.style.justifyContent = "center";
-    badge.style.width = "12px";
-    badge.style.height = "12px";
-    badge.style.verticalAlign = "middle";
-    badge.style.color = "var(--text-muted)";
-    badge.style.flexShrink = "0";
     badge.innerHTML = "";
     setIcon(badge, renderModeIcon(mode));
     if (!existing) {
@@ -326,5 +281,5 @@ const renderModeIcon = (mode: string): string => {
  * Remove all Notebook Navigator lock decorations
  */
 export const clearNotebookNavigatorDecorations = () => {
-  document.querySelectorAll(".current-view-lock-nn").forEach((el) => el.remove());
+  activeDocument.querySelectorAll(".current-view-lock-nn").forEach((el) => el.remove());
 };
