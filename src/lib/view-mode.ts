@@ -21,7 +21,7 @@ export const parseRuleMode = (
   const [key, value] = rawMode.split(":").map((s) => s.trim());
   if (key === "default") return null;
   if (key !== customFrontmatterKey) return null;
-  return isValidMode(value) ? (value as ViewMode) : null;
+  return isValidMode(value) ? value : null;
 };
 
 export const resolveViewModeDecision = ({

@@ -19,9 +19,6 @@ export class CurrentViewSettingsTab extends PluginSettingTab {
       cls: "setting-item-description"
     });
 
-    // === General Settings ===
-    new Setting(containerEl).setName("General").setHeading();
-
     new Setting(containerEl)
       .setName("Frontmatter key")
       .setDesc("Custom frontmatter field to define view mode per note.")
@@ -136,7 +133,7 @@ export class CurrentViewSettingsTab extends PluginSettingTab {
       });
 
     this.plugin.settings.folderRules.forEach((folderMode, index) => {
-      const div = containerEl.createEl("div");
+      const div = containerEl.createDiv();
       div.addClass("force-view-mode-div");
       div.addClass("force-view-mode-folder");
 
@@ -204,7 +201,7 @@ export class CurrentViewSettingsTab extends PluginSettingTab {
       });
 
     this.plugin.settings.tagRules.forEach((tagRule, index) => {
-      const div = containerEl.createEl("div");
+      const div = containerEl.createDiv();
       div.addClass("force-view-mode-div");
       div.addClass("force-view-mode-folder");
 
@@ -272,7 +269,7 @@ export class CurrentViewSettingsTab extends PluginSettingTab {
       });
 
     this.plugin.settings.filePatterns.forEach((file, index) => {
-      const div = containerEl.createEl("div");
+      const div = containerEl.createDiv();
       div.addClass("force-view-mode-div");
       div.addClass("force-view-mode-folder");
 

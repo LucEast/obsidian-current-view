@@ -5,7 +5,6 @@ import {
   App,
   TFile,
   TFolder,
-  Setting,
   debounce,
   ViewState,
   Menu,
@@ -20,7 +19,7 @@ import {
 import { collectMatchedRules } from "./lib/rules";
 import { addLockMenuItems, decorateFileExplorer, clearDecorations, LockTarget } from "./ui/context-menu";
 import { initNotebookNavigatorIntegration, destroyNotebookNavigatorIntegration, decorateNotebookNavigator } from "./ui/notebook-navigator";
-import { normalizePath, isPathWithin } from "./config/settings";
+import { normalizePath } from "./config/settings";
 import { CurrentViewSettingsTab } from "./ui/settings-tab";
 
 type MarkdownViewState = {
@@ -30,7 +29,7 @@ type MarkdownViewState = {
 
 export default class CurrentViewSettingsPlugin extends Plugin {
   settings: CurrentViewSettings;
-  openedFiles: String[];
+  openedFiles: string[];
 
   async onload() {
     await this.loadSettings();
@@ -131,7 +130,7 @@ export default class CurrentViewSettingsPlugin extends Plugin {
     const applyViewMode = async (
       viewState: ViewState & { state: MarkdownViewState },
       value: string,
-      view: MarkdownView,
+      _view: MarkdownView,
       leaf: WorkspaceLeaf
     ) => {
       const beforeMode = viewState.state.mode;
@@ -221,7 +220,7 @@ export default class CurrentViewSettingsPlugin extends Plugin {
     await this.saveData(this.settings);
   }
 
-  async onunload() {
+  onunload() {
     clearDecorations();
     destroyNotebookNavigatorIntegration();
     resetViewsToDefault(this);
@@ -229,17 +228,17 @@ export default class CurrentViewSettingsPlugin extends Plugin {
   }
 }
 
-function alreadyOpen(currFile: TFile, openedFiles: String[]): boolean {
-  const leavesWithSameNote: String[] = [];
+function alreadyOpen(currFile: TFile, openedFiles: string[]): boolean {
+  const leavesWithSameNote: string[] = [];
   if (currFile == null) return false;
-  openedFiles.forEach((openedFile: String) => {
+  openedFiles.forEach((openedFile: string) => {
     if (openedFile == currFile.basename) leavesWithSameNote.push(openedFile);
   });
   return leavesWithSameNote.length != 0;
 }
 
-function resetOpenedNotes(app: App): String[] {
-  let openedFiles: String[] = [];
+function resetOpenedNotes(app: App): string[] {
+  let openedFiles: string[] = [];
   app.workspace.iterateAllLeaves((leaf) => {
     let view = leaf.view instanceof MarkdownView ? leaf.view : null;
     if (null === view) return;
@@ -255,7 +254,7 @@ function resetOpenedNotes(app: App): String[] {
 const resetViewsToDefault = (plugin: CurrentViewSettingsPlugin) => {
   const leaves = plugin.app.workspace.getLeavesOfType("markdown");
   leaves.forEach((leaf) => {
-    const view = leaf.view instanceof MarkdownView ? (leaf.view as MarkdownView) : null;
+    const view = leaf.view instanceof MarkdownView ? leaf.view : null;
     if (!view) return;
     const state = leaf.getViewState();
     if (!state.state) return;
@@ -273,6 +272,6 @@ const resetViewsToDefault = (plugin: CurrentViewSettingsPlugin) => {
           plugin.app.vault.getConfig("livePreview");
     state.state.mode = defaultViewMode;
     state.state.source = defaultEditingModeIsLivePreview ? false : true;
-    leaf.setViewState(state);
+    void leaf.setViewState(state);
   });
 };
