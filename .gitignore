@@ -12,6 +12,7 @@ node_modules/
 # Local tool state
 .claude/
 AGENTS.md
+REVIEW.md
 
 # Build output
 main.js
