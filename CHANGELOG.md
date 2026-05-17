@@ -1,3 +1,10 @@
+## [1.5.3](https://github.com/LucEast/obsidian-current-view/compare/1.5.2...1.5.3) (2026-05-17)
+
+
+### Bug Fixes
+
+* address plugin review lint warnings ([d06ead5](https://github.com/LucEast/obsidian-current-view/commit/d06ead5dffd331075cfd50c5df39272eb6e3749d))
+
 ## [1.5.2](https://github.com/LucEast/obsidian-current-view/compare/1.5.1...1.5.2) (2026-04-21)
 
 
