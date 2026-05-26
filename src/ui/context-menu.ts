@@ -97,7 +97,7 @@ export const decorateFileExplorer = (plugin: CurrentViewSettingsPlugin) => {
     Object.entries(items).forEach(([path, item]) => {
       const targetEl = getTitleElement(item);
       if (!targetEl) return;
-      const existing = targetEl.querySelector(".current-view-lock") as HTMLElement | null;
+      const existing = targetEl.querySelector<HTMLElement>(".current-view-lock");
       const mode = resolveLockModeForPath(plugin.app, plugin.settings, path);
 
       if (!plugin.settings.showExplorerIcons) {
