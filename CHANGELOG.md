@@ -1,3 +1,10 @@
+## [1.5.4](https://github.com/LucEast/obsidian-current-view/compare/1.5.3...1.5.4) (2026-05-26)
+
+
+### Bug Fixes
+
+* release frontmatter rule priority fix ([240756a](https://github.com/LucEast/obsidian-current-view/commit/240756a184c4de41301c3e816e9eba13de206101)), closes [#54](https://github.com/LucEast/obsidian-current-view/issues/54)
+
 ## [1.5.3](https://github.com/LucEast/obsidian-current-view/compare/1.5.2...1.5.3) (2026-05-17)
 
 
