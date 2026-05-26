@@ -19,11 +19,6 @@
   </a>
 </p>
 
-<!-- TODO: Add hero image/demo GIF here -->
-<!-- <p align="center">
-  <img src="assets/demo-hero.gif" alt="Current View Demo" width="800" />
-</p> -->
-
 ---
 
 ## ✨ Features
@@ -85,17 +80,12 @@ Full support for [Notebook Navigator](https://github.com/johansan/notebook-navig
 When you open a note, Current View checks for view mode rules in this order:
 
 ```
-1. File Pattern Rules  →  Exact path match or RegEx pattern
-2. Tag Rules           →  Any matching tag in frontmatter
-3. Folder Rules        →  Deepest matching folder wins
-4. Frontmatter         →  Per-note override
+1. Frontmatter         →  Per-note override
+2. File Pattern Rules  →  Exact path match or RegEx pattern
+3. Tag Rules           →  Any matching tag in frontmatter
+4. Folder Rules        →  Deepest matching folder wins
 5. Obsidian Default    →  Your global Obsidian setting
 ```
-
-<!-- TODO: Add diagram showing priority flow -->
-<!-- <p align="center">
-  <img src="assets/priority-diagram.png" alt="View mode priority diagram" width="500" />
-</p> -->
 
 **Example:**
 - You have a folder rule: `Templates/` → Source mode
@@ -154,11 +144,6 @@ Tag: sent
 Mode: reading
 ```
 Any note with `tags: [sent]` in its frontmatter will automatically open in Reading mode.
-
-<!-- TODO: Add screenshot of common configurations -->
-<!-- <p align="center">
-  <img src="assets/use-cases.png" alt="Common use case configurations" width="600" />
-</p> -->
 
 ---
 
