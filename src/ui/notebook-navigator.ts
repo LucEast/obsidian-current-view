@@ -58,7 +58,7 @@ const tryRegisterMenus = (plugin: CurrentViewSettingsPlugin) => {
   
   if (api?.menus) {
     // Register menu items using the official API
-    fileMenuDispose = api.menus.registerFileMenu(({ addItem, file, selection }) => {
+    fileMenuDispose = api.menus.registerFileMenu(function (this: void, { addItem, file, selection }) {
       if (selection.mode !== 'single') {
         return; // Only show menu for single file selection
       }
@@ -66,7 +66,7 @@ const tryRegisterMenus = (plugin: CurrentViewSettingsPlugin) => {
       addLockMenuItemsToNotebookNavigator(addItem, file.path, "file", plugin);
     });
 
-    folderMenuDispose = api.menus.registerFolderMenu(({ addItem, folder }) => {
+    folderMenuDispose = api.menus.registerFolderMenu(function (this: void, { addItem, folder }) {
       addLockMenuItemsToNotebookNavigator(addItem, folder.path, "folder", plugin);
     });
   }
@@ -252,7 +252,7 @@ export const decorateNotebookNavigator = (plugin: CurrentViewSettingsPlugin) => 
  * Add or update lock badge on a title element
  */
 const addLockBadge = (titleEl: HTMLElement, mode: string | null) => {
-  const existing = titleEl.querySelector(".current-view-lock-nn") as HTMLElement | null;
+  const existing = titleEl.querySelector<HTMLElement>(".current-view-lock-nn");
 
   if (mode) {
     const badge: HTMLElement = existing ?? createSpan({ cls: "current-view-lock-nn" });

@@ -76,18 +76,18 @@ export const resolveLockModeForPath = (
   path: string
 ): string | null => {
   const normalizedPath = normalizePath(path);
+  const file = app.vault.getAbstractFileByPath(path);
+
+  if (file instanceof TFile) {
+    const fmMode = resolveFrontmatterMode(app, file, settings.customFrontmatterKey);
+    if (fmMode) return fmMode;
+  }
+
   const fileRule = settings.filePatterns.find(
     (r) => normalizePath(r.pattern) === normalizedPath && r.mode
   );
   if (fileRule) return fileRule.mode;
 
-  const folderRule = settings.folderRules
-    .filter((r) => r.path && r.mode && isPathWithin(normalizedPath, r.path))
-    .sort((a, b) => a.path.length - b.path.length)
-    .pop();
-  if (folderRule) return folderRule.mode;
-
-  const file = app.vault.getAbstractFileByPath(path);
   if (file instanceof TFile) {
     const fileTags = getFileTags(app, file);
     for (const { tag, mode } of settings.tagRules) {
@@ -95,10 +95,13 @@ export const resolveLockModeForPath = (
       const normalizedTag = tag.replace(/^#/, "").toLowerCase().trim();
       if (fileTags.includes(normalizedTag)) return mode;
     }
-
-    const fmMode = resolveFrontmatterMode(app, file, settings.customFrontmatterKey);
-    if (fmMode) return fmMode;
   }
+
+  const folderRule = settings.folderRules
+    .filter((r) => r.path && r.mode && isPathWithin(normalizedPath, r.path))
+    .sort((a, b) => a.path.length - b.path.length)
+    .pop();
+  if (folderRule) return folderRule.mode;
 
   return null;
 };

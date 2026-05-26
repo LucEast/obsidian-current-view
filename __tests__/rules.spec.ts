@@ -1,4 +1,4 @@
-import { getFileTags, collectMatchedRules } from "../src/lib/rules";
+import { getFileTags, collectMatchedRules, resolveLockModeForPath } from "../src/lib/rules";
 import { App, TFile } from "obsidian";
 import type { CurrentViewSettings } from "../src/config/settings";
 
@@ -20,10 +20,15 @@ const makeSettings = (
   ...overrides,
 });
 
-const makeApp = (tags: unknown): App => {
+const makeApp = (frontmatterOrTags: Record<string, unknown> | unknown): App => {
   const app = new App();
+  const frontmatter =
+    frontmatterOrTags && typeof frontmatterOrTags === "object" && !Array.isArray(frontmatterOrTags)
+      ? (frontmatterOrTags as Record<string, unknown>)
+      : { tags: frontmatterOrTags };
+
   app.metadataCache = {
-    getFileCache: () => ({ frontmatter: { tags } }),
+    getFileCache: () => ({ frontmatter }),
   };
   return app;
 };
@@ -140,5 +145,20 @@ describe("collectMatchedRules – tag rules", () => {
     const result = collectMatchedRules(app, settings, file, () => false);
     // folder rule first, tag rule second → tag rule wins
     expect(result).toEqual([`${key}: live`, `${key}: reading`]);
+  });
+});
+
+describe("resolveLockModeForPath", () => {
+  test("frontmatter overrides file, tag, and folder rules for files", () => {
+    const file = new TFile("templates/index.md");
+    const app = makeApp({ [key]: "reading", tags: ["template"] });
+    app.vault.getAbstractFileByPath = () => file;
+    const settings = makeSettings({
+      folderRules: [{ path: "templates", mode: `${key}: source` }],
+      tagRules: [{ tag: "template", mode: `${key}: live` }],
+      filePatterns: [{ pattern: "templates/index.md", mode: `${key}: source` }],
+    });
+
+    expect(resolveLockModeForPath(app, settings, file.path)).toBe(`${key}: reading`);
   });
 });
