@@ -15,6 +15,7 @@ import type { ViewLockMode } from "../lib/rules";
 import { resolveLockModeForPath } from "../lib/rules";
 import { setLock, removeLock, LockTarget } from "./context-menu";
 import type { NotebookNavigatorAPI, MenuExtensionDispose } from "../types/notebook-navigator";
+import { getModeIcon } from "../lib/icons";
 
 const VIEW_LOCKS: ViewLockMode[] = ["reading", "source", "live"];
 
@@ -224,7 +225,7 @@ export const decorateNotebookNavigator = (plugin: CurrentViewSettingsPlugin) => 
     if (!titleEl) return;
 
     // Always call addLockBadge - it will remove the badge if mode is null
-    addLockBadge(titleEl, mode);
+    addLockBadge(titleEl, mode, plugin);
   });
 
   // Decorate folders in the navigation pane
@@ -244,37 +245,27 @@ export const decorateNotebookNavigator = (plugin: CurrentViewSettingsPlugin) => 
     if (!titleEl) return;
 
     // Always call addLockBadge - it will remove the badge if mode is null
-    addLockBadge(titleEl, mode);
+    addLockBadge(titleEl, mode, plugin);
   });
 };
 
 /**
  * Add or update lock badge on a title element
  */
-const addLockBadge = (titleEl: HTMLElement, mode: string | null) => {
+const addLockBadge = (titleEl: HTMLElement, mode: string | null, plugin: CurrentViewSettingsPlugin) => {
   const existing = titleEl.querySelector<HTMLElement>(".current-view-lock-nn");
 
   if (mode) {
     const badge: HTMLElement = existing ?? createSpan({ cls: "current-view-lock-nn" });
     badge.setAttribute("aria-label", `Locked ${mode}`);
     badge.innerHTML = "";
-    setIcon(badge, renderModeIcon(mode));
+    setIcon(badge, getModeIcon(mode, plugin.settings));
     if (!existing) {
       titleEl.appendChild(badge);
     }
   } else if (existing) {
     existing.remove();
   }
-};
-
-/**
- * Get the appropriate icon for a lock mode
- */
-const renderModeIcon = (mode: string): string => {
-  if (mode.includes("reading")) return "book-open";
-  if (mode.includes("live")) return "pen-tool";
-  if (mode.includes("source")) return "code";
-  return "lock";
 };
 
 /**
