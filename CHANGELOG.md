@@ -1,3 +1,10 @@
+# [1.6.0](https://github.com/LucEast/obsidian-current-view/compare/1.5.4...1.6.0) (2026-05-30)
+
+
+### Features
+
+* configurable view mode icons & frontmatter change detection ([#56](https://github.com/LucEast/obsidian-current-view/issues/56)) ([5036b29](https://github.com/LucEast/obsidian-current-view/commit/5036b295dcb05c2973cfde53e00cc92f7218e60c))
+
 ## [1.5.4](https://github.com/LucEast/obsidian-current-view/compare/1.5.3...1.5.4) (2026-05-26)
 
 
