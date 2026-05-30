@@ -18,6 +18,7 @@ export interface CurrentViewSettings {
   iconReading: string;
   iconLive: string;
   iconSource: string;
+  frontmatterChangeReload: "off" | "notify" | "auto";
 }
 
 export const DEFAULT_SETTINGS: CurrentViewSettings = {
@@ -34,6 +35,7 @@ export const DEFAULT_SETTINGS: CurrentViewSettings = {
   iconReading: "book-open",
   iconLive: "pen-tool",
   iconSource: "code",
+  frontmatterChangeReload: "notify",
 };
 
 export const normalizePath = (path: string): string => {

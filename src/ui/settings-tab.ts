@@ -104,6 +104,21 @@ export class CurrentViewSettingsTab extends PluginSettingTab {
           });
       });
 
+    new Setting(containerEl)
+      .setName("Frontmatter change detection")
+      .setDesc(
+        "When the frontmatter view mode key of the active note changes, react without requiring a file switch."
+      )
+      .addDropdown((dd) => {
+        dd.addOption("off", "Off");
+        dd.addOption("notify", "Show notification with Apply button");
+        dd.addOption("auto", "Apply automatically");
+        dd.setValue(this.plugin.settings.frontmatterChangeReload).onChange(async (value) => {
+          this.plugin.settings.frontmatterChangeReload = value as "off" | "notify" | "auto";
+          await this.plugin.saveSettings();
+        });
+      });
+
     // === View Mode Icons ===
     new Setting(containerEl).setName("View Mode Icons").setHeading();
 
