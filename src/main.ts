@@ -8,6 +8,7 @@ import {
   debounce,
   ViewState,
   Menu,
+  Notice,
 } from "obsidian";
 import { resolveViewModeDecision } from "./lib/view-mode";
 import {
@@ -160,6 +161,66 @@ export default class CurrentViewSettingsPlugin extends Plugin {
         this.settings.debounceTimeout === 0
           ? readViewModeFromFrontmatterAndToggle
           : debounce(readViewModeFromFrontmatterAndToggle, this.settings.debounceTimeout)
+      )
+    );
+
+    this.registerEvent(
+      this.app.metadataCache.on(
+        "changed",
+        debounce((file: TFile) => {
+          if (this.settings.frontmatterChangeReload === "off") return;
+
+          const leaf = this.app.workspace.activeLeaf;
+          if (!leaf) return;
+          const view = leaf.view instanceof MarkdownView ? leaf.view : null;
+          if (!view || view.file?.path !== file.path) return;
+
+          const fileCache = this.app.metadataCache.getFileCache(file);
+          const newFrontmatterValue =
+            fileCache?.frontmatter?.[this.settings.customFrontmatterKey] ?? null;
+
+          const { mode: resolvedMode } = resolveViewModeDecision({
+            matchedRuleModes: collectMatchedRules(
+              this.app,
+              this.settings,
+              file,
+              (pattern) => file.basename.match(pattern) !== null
+            ),
+            frontmatterValue: newFrontmatterValue,
+            customFrontmatterKey: this.settings.customFrontmatterKey,
+          });
+
+          if (!resolvedMode) return;
+
+          const rawState = leaf.getViewState() as ViewState & { state: MarkdownViewState };
+          const desiredLeafMode = resolvedMode === "reading" ? "preview" : "source";
+          const desiredSource = resolvedMode === "source";
+          const alreadyCorrect =
+            rawState.state?.mode === desiredLeafMode &&
+            (desiredLeafMode === "preview" || rawState.state?.source === desiredSource);
+          if (alreadyCorrect) return;
+
+          if (this.settings.frontmatterChangeReload === "auto") {
+            void readViewModeFromFrontmatterAndToggle(leaf);
+          } else {
+            const modeLabel =
+              resolvedMode === "reading"
+                ? "Reading"
+                : resolvedMode === "live"
+                ? "Live Preview"
+                : "Source";
+            const frag = document.createDocumentFragment();
+            frag.createEl("span", {
+              text: `Current View: view mode changed to ${modeLabel}. `,
+            });
+            const btn = frag.createEl("button", { text: "Apply now" });
+            const notice = new Notice(frag, 8000);
+            btn.addEventListener("click", () => {
+              notice.hide();
+              void readViewModeFromFrontmatterAndToggle(leaf);
+            });
+          }
+        }, 500)
       )
     );
 

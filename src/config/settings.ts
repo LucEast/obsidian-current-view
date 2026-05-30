@@ -15,6 +15,10 @@ export interface CurrentViewSettings {
   tagRules: TagRule[];
   showExplorerIcons: boolean;
   showLockNotifications: boolean;
+  iconReading: string;
+  iconLive: string;
+  iconSource: string;
+  frontmatterChangeReload: "off" | "notify" | "auto";
 }
 
 export const DEFAULT_SETTINGS: CurrentViewSettings = {
@@ -28,6 +32,10 @@ export const DEFAULT_SETTINGS: CurrentViewSettings = {
   tagRules: [{ tag: "", mode: "" }],
   showExplorerIcons: true,
   showLockNotifications: true,
+  iconReading: "book-open",
+  iconLive: "pen-tool",
+  iconSource: "code",
+  frontmatterChangeReload: "notify",
 };
 
 export const normalizePath = (path: string): string => {

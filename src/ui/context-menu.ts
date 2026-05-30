@@ -3,6 +3,7 @@ import type CurrentViewSettingsPlugin from "../main";
 import type { ViewLockMode } from "../lib/rules";
 import { normalizePath } from "../config/settings";
 import { resolveLockModeForPath } from "../lib/rules";
+import { getModeIcon } from "../lib/icons";
 
 export type LockTarget = "file" | "folder";
 
@@ -109,7 +110,7 @@ export const decorateFileExplorer = (plugin: CurrentViewSettingsPlugin) => {
         const badge: HTMLElement = existing ?? createSpan({ cls: "current-view-lock" });
         badge.setAttribute("aria-label", `Locked ${mode}`);
         badge.innerHTML = "";
-        setIcon(badge, renderModeIcon(mode));
+        setIcon(badge, getModeIcon(mode, plugin.settings));
         if (!existing) {
           targetEl.appendChild(badge);
         }
@@ -132,20 +133,6 @@ const getTitleElement = (item: any): HTMLElement | null => {
   return candidates.find((el) => !!el) || null;
 };
 
-const renderModeBadge = (mode: string): string => {
-  if (mode.includes("reading")) return "reading";
-  if (mode.includes("live")) return "live";
-  if (mode.includes("source")) return "source";
-  return "unknown";
-};
-
-const renderModeIcon = (mode: string): string => {
-  const normalized = renderModeBadge(mode);
-  if (normalized === "reading") return "book-open";
-  if (normalized === "live") return "pen-tool";
-  if (normalized === "source") return "code";
-  return "lock";
-};
 
 export const clearDecorations = () => {
   activeDocument.querySelectorAll(".current-view-lock").forEach((el) => el.remove());

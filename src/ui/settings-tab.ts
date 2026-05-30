@@ -1,5 +1,8 @@
-import { App, PluginSettingTab, Setting } from "obsidian";
+import { App, PluginSettingTab, Setting, setIcon } from "obsidian";
 import type CurrentViewSettingsPlugin from "../main";
+import { VIEW_MODE_ICON_DEFAULTS } from "../lib/icons";
+import { decorateFileExplorer } from "./context-menu";
+import { decorateNotebookNavigator } from "./notebook-navigator";
 
 export class CurrentViewSettingsTab extends PluginSettingTab {
   plugin: CurrentViewSettingsPlugin;
@@ -100,6 +103,35 @@ export class CurrentViewSettingsTab extends PluginSettingTab {
             await this.plugin.saveSettings();
           });
       });
+
+    new Setting(containerEl)
+      .setName("Frontmatter change detection")
+      .setDesc(
+        "When the frontmatter view mode key of the active note changes, react without requiring a file switch."
+      )
+      .addDropdown((dd) => {
+        dd.addOption("off", "Off");
+        dd.addOption("notify", "Show notification with Apply button");
+        dd.addOption("auto", "Apply automatically");
+        dd.setValue(this.plugin.settings.frontmatterChangeReload).onChange(async (value) => {
+          this.plugin.settings.frontmatterChangeReload = value as "off" | "notify" | "auto";
+          await this.plugin.saveSettings();
+        });
+      });
+
+    // === View Mode Icons ===
+    new Setting(containerEl).setName("View Mode Icons").setHeading();
+
+    new Setting(containerEl)
+      .setDesc(createFragment((frag) => {
+        frag.appendText("Icon name from the Lucide icon set (up to v0.446.0). Browse available icons at ");
+        frag.createEl("a", { text: "lucide.dev", href: "https://lucide.dev" });
+        frag.appendText(".");
+      }));
+
+    this.addIconPickerSetting(containerEl, "Reading mode", "iconReading", VIEW_MODE_ICON_DEFAULTS.reading);
+    this.addIconPickerSetting(containerEl, "Live Preview mode", "iconLive", VIEW_MODE_ICON_DEFAULTS.live);
+    this.addIconPickerSetting(containerEl, "Source mode", "iconSource", VIEW_MODE_ICON_DEFAULTS.source);
 
     const modes = [
       "default",
@@ -311,7 +343,43 @@ export class CurrentViewSettingsTab extends PluginSettingTab {
       s.infoEl.remove();
       div.appendChild(containerEl.lastChild as Node);
     });
+  }
 
+  private addIconPickerSetting(
+    containerEl: HTMLElement,
+    name: string,
+    key: "iconReading" | "iconLive" | "iconSource",
+    defaultIcon: string
+  ) {
+    const setting = new Setting(containerEl).setName(name);
 
+    setting.addText((text) => {
+      text
+        .setPlaceholder(defaultIcon)
+        .setValue(this.plugin.settings[key])
+        .onChange(async (value) => {
+          const icon = value.trim() || defaultIcon;
+          this.plugin.settings[key] = icon;
+          previewEl.empty();
+          setIcon(previewEl, icon);
+          await this.plugin.saveSettings();
+          decorateFileExplorer(this.plugin);
+          decorateNotebookNavigator(this.plugin);
+        });
+    });
+
+    const previewEl = setting.controlEl.createSpan({ cls: "current-view-icon-preview" });
+    setIcon(previewEl, this.plugin.settings[key]);
+
+    setting.addExtraButton((btn) => {
+      btn
+        .setIcon("rotate-ccw")
+        .setTooltip("Reset to default")
+        .onClick(async () => {
+          this.plugin.settings[key] = defaultIcon;
+          await this.plugin.saveSettings();
+          this.display();
+        });
+    });
   }
 }
