@@ -5,10 +5,10 @@ import {
   App,
   TFile,
   TFolder,
-  Setting,
   debounce,
   ViewState,
   Menu,
+  Notice,
 } from "obsidian";
 import { resolveViewModeDecision } from "./lib/view-mode";
 import {
@@ -20,7 +20,7 @@ import {
 import { collectMatchedRules } from "./lib/rules";
 import { addLockMenuItems, decorateFileExplorer, clearDecorations, LockTarget } from "./ui/context-menu";
 import { initNotebookNavigatorIntegration, destroyNotebookNavigatorIntegration, decorateNotebookNavigator } from "./ui/notebook-navigator";
-import { normalizePath, isPathWithin } from "./config/settings";
+import { normalizePath } from "./config/settings";
 import { CurrentViewSettingsTab } from "./ui/settings-tab";
 
 type MarkdownViewState = {
@@ -30,7 +30,7 @@ type MarkdownViewState = {
 
 export default class CurrentViewSettingsPlugin extends Plugin {
   settings: CurrentViewSettings;
-  openedFiles: String[];
+  openedFiles: string[];
 
   async onload() {
     await this.loadSettings();
@@ -131,7 +131,7 @@ export default class CurrentViewSettingsPlugin extends Plugin {
     const applyViewMode = async (
       viewState: ViewState & { state: MarkdownViewState },
       value: string,
-      view: MarkdownView,
+      _view: MarkdownView,
       leaf: WorkspaceLeaf
     ) => {
       const beforeMode = viewState.state.mode;
@@ -161,6 +161,66 @@ export default class CurrentViewSettingsPlugin extends Plugin {
         this.settings.debounceTimeout === 0
           ? readViewModeFromFrontmatterAndToggle
           : debounce(readViewModeFromFrontmatterAndToggle, this.settings.debounceTimeout)
+      )
+    );
+
+    this.registerEvent(
+      this.app.metadataCache.on(
+        "changed",
+        debounce((file: TFile) => {
+          if (this.settings.frontmatterChangeReload === "off") return;
+
+          const leaf = this.app.workspace.activeLeaf;
+          if (!leaf) return;
+          const view = leaf.view instanceof MarkdownView ? leaf.view : null;
+          if (!view || view.file?.path !== file.path) return;
+
+          const fileCache = this.app.metadataCache.getFileCache(file);
+          const newFrontmatterValue =
+            fileCache?.frontmatter?.[this.settings.customFrontmatterKey] ?? null;
+
+          const { mode: resolvedMode } = resolveViewModeDecision({
+            matchedRuleModes: collectMatchedRules(
+              this.app,
+              this.settings,
+              file,
+              (pattern) => file.basename.match(pattern) !== null
+            ),
+            frontmatterValue: newFrontmatterValue,
+            customFrontmatterKey: this.settings.customFrontmatterKey,
+          });
+
+          if (!resolvedMode) return;
+
+          const rawState = leaf.getViewState() as ViewState & { state: MarkdownViewState };
+          const desiredLeafMode = resolvedMode === "reading" ? "preview" : "source";
+          const desiredSource = resolvedMode === "source";
+          const alreadyCorrect =
+            rawState.state?.mode === desiredLeafMode &&
+            (desiredLeafMode === "preview" || rawState.state?.source === desiredSource);
+          if (alreadyCorrect) return;
+
+          if (this.settings.frontmatterChangeReload === "auto") {
+            void readViewModeFromFrontmatterAndToggle(leaf);
+          } else {
+            const modeLabel =
+              resolvedMode === "reading"
+                ? "Reading"
+                : resolvedMode === "live"
+                ? "Live Preview"
+                : "Source";
+            const frag = document.createDocumentFragment();
+            frag.createEl("span", {
+              text: `Current View: view mode changed to ${modeLabel}. `,
+            });
+            const btn = frag.createEl("button", { text: "Apply now" });
+            const notice = new Notice(frag, 8000);
+            btn.addEventListener("click", () => {
+              notice.hide();
+              void readViewModeFromFrontmatterAndToggle(leaf);
+            });
+          }
+        }, 500)
       )
     );
 
@@ -221,7 +281,7 @@ export default class CurrentViewSettingsPlugin extends Plugin {
     await this.saveData(this.settings);
   }
 
-  async onunload() {
+  onunload() {
     clearDecorations();
     destroyNotebookNavigatorIntegration();
     resetViewsToDefault(this);
@@ -229,17 +289,17 @@ export default class CurrentViewSettingsPlugin extends Plugin {
   }
 }
 
-function alreadyOpen(currFile: TFile, openedFiles: String[]): boolean {
-  const leavesWithSameNote: String[] = [];
+function alreadyOpen(currFile: TFile, openedFiles: string[]): boolean {
+  const leavesWithSameNote: string[] = [];
   if (currFile == null) return false;
-  openedFiles.forEach((openedFile: String) => {
+  openedFiles.forEach((openedFile: string) => {
     if (openedFile == currFile.basename) leavesWithSameNote.push(openedFile);
   });
   return leavesWithSameNote.length != 0;
 }
 
-function resetOpenedNotes(app: App): String[] {
-  let openedFiles: String[] = [];
+function resetOpenedNotes(app: App): string[] {
+  let openedFiles: string[] = [];
   app.workspace.iterateAllLeaves((leaf) => {
     let view = leaf.view instanceof MarkdownView ? leaf.view : null;
     if (null === view) return;
@@ -255,7 +315,7 @@ function resetOpenedNotes(app: App): String[] {
 const resetViewsToDefault = (plugin: CurrentViewSettingsPlugin) => {
   const leaves = plugin.app.workspace.getLeavesOfType("markdown");
   leaves.forEach((leaf) => {
-    const view = leaf.view instanceof MarkdownView ? (leaf.view as MarkdownView) : null;
+    const view = leaf.view instanceof MarkdownView ? leaf.view : null;
     if (!view) return;
     const state = leaf.getViewState();
     if (!state.state) return;
@@ -273,6 +333,6 @@ const resetViewsToDefault = (plugin: CurrentViewSettingsPlugin) => {
           plugin.app.vault.getConfig("livePreview");
     state.state.mode = defaultViewMode;
     state.state.source = defaultEditingModeIsLivePreview ? false : true;
-    leaf.setViewState(state);
+    void leaf.setViewState(state);
   });
 };

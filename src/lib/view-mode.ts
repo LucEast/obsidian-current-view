@@ -21,7 +21,7 @@ export const parseRuleMode = (
   const [key, value] = rawMode.split(":").map((s) => s.trim());
   if (key === "default") return null;
   if (key !== customFrontmatterKey) return null;
-  return isValidMode(value) ? (value as ViewMode) : null;
+  return isValidMode(value) ? value : null;
 };
 
 export const resolveViewModeDecision = ({
@@ -33,6 +33,11 @@ export const resolveViewModeDecision = ({
   frontmatterValue: unknown;
   customFrontmatterKey: string;
 }): { mode: ViewMode | null; source: ModeSource | null } => {
+  const normalizedFrontmatter = normalizeFrontmatterMode(frontmatterValue);
+  if (normalizedFrontmatter) {
+    return { mode: normalizedFrontmatter, source: "frontmatter" };
+  }
+
   let resolvedMode: ViewMode | null = null;
   let source: ModeSource | null = null;
 
@@ -52,11 +57,6 @@ export const resolveViewModeDecision = ({
 
   if (resolvedMode) {
     return { mode: resolvedMode, source };
-  }
-
-  const normalizedFrontmatter = normalizeFrontmatterMode(frontmatterValue);
-  if (normalizedFrontmatter) {
-    return { mode: normalizedFrontmatter, source: "frontmatter" };
   }
 
   return { mode: null, source: null };

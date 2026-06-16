@@ -19,11 +19,6 @@
   </a>
 </p>
 
-<!-- TODO: Add hero image/demo GIF here -->
-<!-- <p align="center">
-  <img src="assets/demo-hero.gif" alt="Current View Demo" width="800" />
-</p> -->
-
 ---
 
 ## ✨ Features
@@ -85,17 +80,12 @@ Full support for [Notebook Navigator](https://github.com/johansan/notebook-navig
 When you open a note, Current View checks for view mode rules in this order:
 
 ```
-1. File Pattern Rules  →  Exact path match or RegEx pattern
-2. Tag Rules           →  Any matching tag in frontmatter
-3. Folder Rules        →  Deepest matching folder wins
-4. Frontmatter         →  Per-note override
+1. Frontmatter         →  Per-note override
+2. File Pattern Rules  →  Exact path match or RegEx pattern
+3. Tag Rules           →  Any matching tag in frontmatter
+4. Folder Rules        →  Deepest matching folder wins
 5. Obsidian Default    →  Your global Obsidian setting
 ```
-
-<!-- TODO: Add diagram showing priority flow -->
-<!-- <p align="center">
-  <img src="assets/priority-diagram.png" alt="View mode priority diagram" width="500" />
-</p> -->
 
 **Example:**
 - You have a folder rule: `Templates/` → Source mode
@@ -155,11 +145,6 @@ Mode: reading
 ```
 Any note with `tags: [sent]` in its frontmatter will automatically open in Reading mode.
 
-<!-- TODO: Add screenshot of common configurations -->
-<!-- <p align="center">
-  <img src="assets/use-cases.png" alt="Common use case configurations" width="600" />
-</p> -->
-
 ---
 
 ## ⚙️ Settings
@@ -212,14 +197,14 @@ Use BRAT only if you want to test beta builds before they are released in the Ob
 1. Install [BRAT](https://github.com/TfTHacker/obsidian42-brat) plugin
 2. In BRAT settings, click **Add Beta Plugin**
 3. Enter: `LucEast/obsidian-current-view`
-4. In BRAT, choose the latest beta release (for example <!-- README_BETA_VERSION_EXAMPLE_START -->`1.5.0-beta.1`<!-- README_BETA_VERSION_EXAMPLE_END -->)
+4. In BRAT, choose the latest beta release (for example <!-- README_BETA_VERSION_EXAMPLE_START -->`1.6.0-beta.1`<!-- README_BETA_VERSION_EXAMPLE_END -->)
 5. Enable the plugin in Community Plugins
 
 ### Beta Channel Notes
 
-- Stable releases use plain versions like <!-- README_STABLE_VERSION_EXAMPLE_START -->`1.5.0`<!-- README_STABLE_VERSION_EXAMPLE_END --> and are distributed through the Obsidian Community Plugins directory.
-- Beta releases use versions like <!-- README_BETA_VERSION_EXAMPLE_START -->`1.5.0-beta.1`<!-- README_BETA_VERSION_EXAMPLE_END --> and are distributed through GitHub Releases for BRAT testers.
-- Obsidian does not fully support semantic version pre-release handling for community plugins. If you install <!-- README_BETA_VERSION_EXAMPLE_START -->`1.5.0-beta.1`<!-- README_BETA_VERSION_EXAMPLE_END --> via BRAT, Obsidian may not automatically switch you to the stable <!-- README_STABLE_VERSION_EXAMPLE_START -->`1.5.0`<!-- README_STABLE_VERSION_EXAMPLE_END --> release later.
+- Stable releases use plain versions like <!-- README_STABLE_VERSION_EXAMPLE_START -->`1.6.0`<!-- README_STABLE_VERSION_EXAMPLE_END --> and are distributed through the Obsidian Community Plugins directory.
+- Beta releases use versions like <!-- README_BETA_VERSION_EXAMPLE_START -->`1.6.0-beta.1`<!-- README_BETA_VERSION_EXAMPLE_END --> and are distributed through GitHub Releases for BRAT testers.
+- Obsidian does not fully support semantic version pre-release handling for community plugins. If you install <!-- README_BETA_VERSION_EXAMPLE_START -->`1.6.0-beta.1`<!-- README_BETA_VERSION_EXAMPLE_END --> via BRAT, Obsidian may not automatically switch you to the stable <!-- README_STABLE_VERSION_EXAMPLE_START -->`1.6.0`<!-- README_STABLE_VERSION_EXAMPLE_END --> release later.
 - If you test beta builds, treat BRAT as a separate release channel.
 
 ### Return From Beta To Stable

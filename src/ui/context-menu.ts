@@ -1,8 +1,9 @@
-import { Menu, Notice, TFolder, TFile, setIcon } from "obsidian";
+import { Menu, Notice, setIcon } from "obsidian";
 import type CurrentViewSettingsPlugin from "../main";
 import type { ViewLockMode } from "../lib/rules";
 import { normalizePath } from "../config/settings";
 import { resolveLockModeForPath } from "../lib/rules";
+import { getModeIcon } from "../lib/icons";
 
 export type LockTarget = "file" | "folder";
 
@@ -97,7 +98,7 @@ export const decorateFileExplorer = (plugin: CurrentViewSettingsPlugin) => {
     Object.entries(items).forEach(([path, item]) => {
       const targetEl = getTitleElement(item);
       if (!targetEl) return;
-      const existing = targetEl.querySelector(".current-view-lock") as HTMLElement | null;
+      const existing = targetEl.querySelector<HTMLElement>(".current-view-lock");
       const mode = resolveLockModeForPath(plugin.app, plugin.settings, path);
 
       if (!plugin.settings.showExplorerIcons) {
@@ -106,20 +107,10 @@ export const decorateFileExplorer = (plugin: CurrentViewSettingsPlugin) => {
       }
 
       if (mode) {
-        const badge: HTMLElement = existing || document.createElement("span");
-        badge.className = "current-view-lock";
+        const badge: HTMLElement = existing ?? createSpan({ cls: "current-view-lock" });
         badge.setAttribute("aria-label", `Locked ${mode}`);
-        badge.style.marginLeft = "6px";
-        badge.style.opacity = "0.8";
-        badge.style.display = "inline-flex";
-        badge.style.alignItems = "center";
-        badge.style.justifyContent = "center";
-        badge.style.width = "14px";
-        badge.style.height = "14px";
-        badge.style.verticalAlign = "middle";
-        badge.style.color = "var(--text-muted)";
         badge.innerHTML = "";
-        setIcon(badge, renderModeIcon(mode));
+        setIcon(badge, getModeIcon(mode, plugin.settings));
         if (!existing) {
           targetEl.appendChild(badge);
         }
@@ -142,21 +133,7 @@ const getTitleElement = (item: any): HTMLElement | null => {
   return candidates.find((el) => !!el) || null;
 };
 
-const renderModeBadge = (mode: string): string => {
-  if (mode.includes("reading")) return "reading";
-  if (mode.includes("live")) return "live";
-  if (mode.includes("source")) return "source";
-  return "unknown";
-};
-
-const renderModeIcon = (mode: string): string => {
-  const normalized = renderModeBadge(mode);
-  if (normalized === "reading") return "book-open";
-  if (normalized === "live") return "pen-tool";
-  if (normalized === "source") return "code";
-  return "lock";
-};
 
 export const clearDecorations = () => {
-  document.querySelectorAll(".current-view-lock").forEach((el) => el.remove());
+  activeDocument.querySelectorAll(".current-view-lock").forEach((el) => el.remove());
 };

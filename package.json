@@ -1,6 +1,6 @@
 {
 	"name": "current-view",
-	"version": "1.5.0",
+	"version": "1.6.0",
 	"private": true,
 	"description": "Automatically set the view mode (Reading, Live Preview, Source) for notes in Obsidian using folder rules, file patterns, or frontmatter.",
 	"main": "main.js",
@@ -17,10 +17,10 @@
 	"license": "MIT",
 	"devDependencies": {
 		"@types/node": "^24.0.0",
-		"@typescript-eslint/eslint-plugin": "8.50.0",
-		"@typescript-eslint/parser": "8.50.0",
+		"@typescript-eslint/eslint-plugin": "8.60.0",
+		"@typescript-eslint/parser": "8.60.0",
 		"@vitest/coverage-v8": "^1.6.0",
-		"builtin-modules": "5.0.0",
+		"builtin-modules": "5.2.0",
 		"conventional-changelog-conventionalcommits": "^9.1.0",
 		"esbuild": "0.28.0",
 		"obsidian": "latest",

@@ -15,12 +15,14 @@ import type { ViewLockMode } from "../lib/rules";
 import { resolveLockModeForPath } from "../lib/rules";
 import { setLock, removeLock, LockTarget } from "./context-menu";
 import type { NotebookNavigatorAPI, MenuExtensionDispose } from "../types/notebook-navigator";
+import { getModeIcon } from "../lib/icons";
 
 const VIEW_LOCKS: ViewLockMode[] = ["reading", "source", "live"];
 
 let fileListObserver: MutationObserver | null = null;
 let fileMenuDispose: MenuExtensionDispose | null = null;
 let folderMenuDispose: MenuExtensionDispose | null = null;
+let decorateDebounceTimer: number | null = null;
 
 /**
  * Get the Notebook Navigator API if available
@@ -39,7 +41,7 @@ export const initNotebookNavigatorIntegration = (plugin: CurrentViewSettingsPlug
   tryRegisterMenus(plugin);
   
   // Also try again after a delay, in case Notebook Navigator loads after us
-  setTimeout(() => {
+  activeWindow.setTimeout(() => {
     if (!fileMenuDispose && !folderMenuDispose) {
       tryRegisterMenus(plugin);
     }
@@ -57,7 +59,7 @@ const tryRegisterMenus = (plugin: CurrentViewSettingsPlugin) => {
   
   if (api?.menus) {
     // Register menu items using the official API
-    fileMenuDispose = api.menus.registerFileMenu(({ addItem, file, selection }) => {
+    fileMenuDispose = api.menus.registerFileMenu(function (this: void, { addItem, file, selection }) {
       if (selection.mode !== 'single') {
         return; // Only show menu for single file selection
       }
@@ -65,7 +67,7 @@ const tryRegisterMenus = (plugin: CurrentViewSettingsPlugin) => {
       addLockMenuItemsToNotebookNavigator(addItem, file.path, "file", plugin);
     });
 
-    folderMenuDispose = api.menus.registerFolderMenu(({ addItem, folder }) => {
+    folderMenuDispose = api.menus.registerFolderMenu(function (this: void, { addItem, folder }) {
       addLockMenuItemsToNotebookNavigator(addItem, folder.path, "folder", plugin);
     });
   }
@@ -80,8 +82,12 @@ export const destroyNotebookNavigatorIntegration = () => {
   fileMenuDispose = null;
   folderMenuDispose?.();
   folderMenuDispose = null;
-  
-  // Cleanup file list observer
+
+  // Cleanup file list observer and pending debounce
+  if (decorateDebounceTimer) {
+    activeWindow.clearTimeout(decorateDebounceTimer);
+    decorateDebounceTimer = null;
+  }
   fileListObserver?.disconnect();
   fileListObserver = null;
   
@@ -156,50 +162,19 @@ const extractPathFromElement = (el: HTMLElement): string | null => {
 };
 
 /**
- * Resolve a path (which might be just a filename) to a full vault path
- * (Still needed for icon decorations)
- */
-const resolvePathInVault = (
-  plugin: CurrentViewSettingsPlugin,
-  path: string,
-  type: LockTarget
-): string | null => {
-  // If it's already a valid path, return it
-  const abstractFile = plugin.app.vault.getAbstractFileByPath(path);
-  if (abstractFile) {
-    return abstractFile.path;
-  }
-
-  // Try to find file by name
-  if (type === "file") {
-    const files = plugin.app.vault.getFiles();
-    const match = files.find(
-      (f) => f.basename === path || f.name === path || f.path === path
-    );
-    if (match) return match.path;
-  }
-
-  // For folders, try common patterns
-  if (type === "folder") {
-    const folders = plugin.app.vault.getAllFolders();
-    const match = folders.find((f) => f.name === path || f.path === path);
-    if (match) return match.path;
-  }
-
-  return null;
-};
-
-/**
  * Watch for Notebook Navigator file list changes to add lock icons
  */
 const setupFileListObserver = (plugin: CurrentViewSettingsPlugin) => {
   fileListObserver = new MutationObserver(() => {
-    // Debounce decoration updates
-    requestAnimationFrame(() => decorateNotebookNavigator(plugin));
+    if (decorateDebounceTimer) activeWindow.clearTimeout(decorateDebounceTimer);
+    decorateDebounceTimer = activeWindow.setTimeout(() => {
+      decorateDebounceTimer = null;
+      decorateNotebookNavigator(plugin);
+    }, 150);
   });
 
   // Observe the entire document for nn-file elements
-  fileListObserver.observe(document.body, {
+  fileListObserver.observe(activeDocument.body, {
     childList: true,
     subtree: true,
   });
@@ -217,69 +192,74 @@ export const decorateNotebookNavigator = (plugin: CurrentViewSettingsPlugin) => 
     return;
   }
 
+  // Build lookup maps once per decoration pass (avoid O(N×M) vault queries)
+  const allFiles = plugin.app.vault.getFiles();
+  const filePathByName = new Map<string, string>();
+  for (const f of allFiles) {
+    filePathByName.set(f.path, f.path);
+    filePathByName.set(f.name, f.path);
+    filePathByName.set(f.basename, f.path);
+  }
+
+  const allFolders = plugin.app.vault.getAllFolders();
+  const folderPathByName = new Map<string, string>();
+  for (const f of allFolders) {
+    folderPathByName.set(f.path, f.path);
+    folderPathByName.set(f.name, f.path);
+  }
+
   // Decorate files in the file list
-  const fileItems = document.querySelectorAll(".nn-file");
-  
+  const fileItems = activeDocument.querySelectorAll(".nn-file");
+
   fileItems.forEach((fileEl) => {
     const path = extractPathFromElement(fileEl as HTMLElement);
     if (!path) return;
 
-    const resolvedPath = resolvePathInVault(plugin, path, "file");
+    const resolvedPath = filePathByName.get(path) ?? null;
     if (!resolvedPath) return;
 
     const mode = resolveLockModeForPath(plugin.app, plugin.settings, resolvedPath);
-    
+
     // Look for .nn-file-name (where we'll add the icon)
     const titleEl = fileEl.querySelector(".nn-file-name") as HTMLElement;
     if (!titleEl) return;
 
     // Always call addLockBadge - it will remove the badge if mode is null
-    addLockBadge(titleEl, mode);
+    addLockBadge(titleEl, mode, plugin);
   });
 
   // Decorate folders in the navigation pane
-  const folderItems = document.querySelectorAll(".nn-folder");
-  
+  const folderItems = activeDocument.querySelectorAll(".nn-folder");
+
   folderItems.forEach((folderEl) => {
     const path = extractPathFromElement(folderEl as HTMLElement);
     if (!path) return;
 
-    const resolvedPath = resolvePathInVault(plugin, path, "folder");
+    const resolvedPath = folderPathByName.get(path) ?? null;
     if (!resolvedPath) return;
 
     const mode = resolveLockModeForPath(plugin.app, plugin.settings, resolvedPath);
-    
+
     // Look for .nn-navitem-name (where we'll add the icon)
     const titleEl = folderEl.querySelector(".nn-navitem-name") as HTMLElement;
     if (!titleEl) return;
 
     // Always call addLockBadge - it will remove the badge if mode is null
-    addLockBadge(titleEl, mode);
+    addLockBadge(titleEl, mode, plugin);
   });
 };
 
 /**
  * Add or update lock badge on a title element
  */
-const addLockBadge = (titleEl: HTMLElement, mode: string | null) => {
-  const existing = titleEl.querySelector(".current-view-lock-nn") as HTMLElement | null;
+const addLockBadge = (titleEl: HTMLElement, mode: string | null, plugin: CurrentViewSettingsPlugin) => {
+  const existing = titleEl.querySelector<HTMLElement>(".current-view-lock-nn");
 
   if (mode) {
-    const badge: HTMLElement = existing || document.createElement("span");
-    badge.className = "current-view-lock-nn";
+    const badge: HTMLElement = existing ?? createSpan({ cls: "current-view-lock-nn" });
     badge.setAttribute("aria-label", `Locked ${mode}`);
-    badge.style.marginLeft = "4px";
-    badge.style.opacity = "0.7";
-    badge.style.display = "inline-flex";
-    badge.style.alignItems = "center";
-    badge.style.justifyContent = "center";
-    badge.style.width = "12px";
-    badge.style.height = "12px";
-    badge.style.verticalAlign = "middle";
-    badge.style.color = "var(--text-muted)";
-    badge.style.flexShrink = "0";
     badge.innerHTML = "";
-    setIcon(badge, renderModeIcon(mode));
+    setIcon(badge, getModeIcon(mode, plugin.settings));
     if (!existing) {
       titleEl.appendChild(badge);
     }
@@ -289,18 +269,8 @@ const addLockBadge = (titleEl: HTMLElement, mode: string | null) => {
 };
 
 /**
- * Get the appropriate icon for a lock mode
- */
-const renderModeIcon = (mode: string): string => {
-  if (mode.includes("reading")) return "book-open";
-  if (mode.includes("live")) return "pen-tool";
-  if (mode.includes("source")) return "code";
-  return "lock";
-};
-
-/**
  * Remove all Notebook Navigator lock decorations
  */
 export const clearNotebookNavigatorDecorations = () => {
-  document.querySelectorAll(".current-view-lock-nn").forEach((el) => el.remove());
+  activeDocument.querySelectorAll(".current-view-lock-nn").forEach((el) => el.remove());
 };

@@ -14,7 +14,7 @@ describe("resolveViewModeDecision", () => {
     expect(result).toEqual({ mode: "live", source: "rule" });
   });
 
-  test("falls back to frontmatter when no rule applies", () => {
+  test("uses frontmatter when no rule applies", () => {
     const result = resolveViewModeDecision({
       matchedRuleModes: [],
       frontmatterValue: "source",
@@ -22,6 +22,16 @@ describe("resolveViewModeDecision", () => {
     });
 
     expect(result).toEqual({ mode: "source", source: "frontmatter" });
+  });
+
+  test("frontmatter overrides matching rules", () => {
+    const result = resolveViewModeDecision({
+      matchedRuleModes: [`${key}: source`, `${key}: live`],
+      frontmatterValue: "reading",
+      customFrontmatterKey: key,
+    });
+
+    expect(result).toEqual({ mode: "reading", source: "frontmatter" });
   });
 
   test("default rule clears previous matches and defers to frontmatter", () => {

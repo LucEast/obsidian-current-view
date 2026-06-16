@@ -1,3 +1,39 @@
+# [1.6.0](https://github.com/LucEast/obsidian-current-view/compare/1.5.4...1.6.0) (2026-05-30)
+
+
+### Features
+
+* configurable view mode icons & frontmatter change detection ([#56](https://github.com/LucEast/obsidian-current-view/issues/56)) ([5036b29](https://github.com/LucEast/obsidian-current-view/commit/5036b295dcb05c2973cfde53e00cc92f7218e60c))
+
+## [1.5.4](https://github.com/LucEast/obsidian-current-view/compare/1.5.3...1.5.4) (2026-05-26)
+
+
+### Bug Fixes
+
+* release frontmatter rule priority fix ([240756a](https://github.com/LucEast/obsidian-current-view/commit/240756a184c4de41301c3e816e9eba13de206101)), closes [#54](https://github.com/LucEast/obsidian-current-view/issues/54)
+
+## [1.5.3](https://github.com/LucEast/obsidian-current-view/compare/1.5.2...1.5.3) (2026-05-17)
+
+
+### Bug Fixes
+
+* address plugin review lint warnings ([d06ead5](https://github.com/LucEast/obsidian-current-view/commit/d06ead5dffd331075cfd50c5df39272eb6e3749d))
+
+## [1.5.2](https://github.com/LucEast/obsidian-current-view/compare/1.5.1...1.5.2) (2026-04-21)
+
+
+### Bug Fixes
+
+* improve lock icon contrast on active sidebar items ([8622d2b](https://github.com/LucEast/obsidian-current-view/commit/8622d2b5892ea34f681f8cbc30c8c76def7bebbe))
+
+## [1.5.1](https://github.com/LucEast/obsidian-current-view/compare/1.5.0...1.5.1) (2026-04-13)
+
+
+### Bug Fixes
+
+* reduce input lag caused by MutationObserver and vault queries in Notebook Navigator integration ([36406ac](https://github.com/LucEast/obsidian-current-view/commit/36406ac48749392f51cbcf412913be7182e26b81))
+* reduce input lag caused by MutationObserver and vault queries in Notebook Navigator integration ([ad110f7](https://github.com/LucEast/obsidian-current-view/commit/ad110f7f00bdd2cff86a221b9eec54231157fe03))
+
 # [1.5.0](https://github.com/LucEast/obsidian-current-view/compare/1.4.2...1.5.0) (2026-03-21)
 
 
