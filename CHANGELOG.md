@@ -1,3 +1,10 @@
+## [1.6.1-beta.1](https://github.com/LucEast/obsidian-current-view/compare/1.6.0...1.6.1-beta.1) (2026-06-16)
+
+
+### Bug Fixes
+
+* prevent repeated notifications when editing in a folder locked to reading mode ([99848d1](https://github.com/LucEast/obsidian-current-view/commit/99848d15f945616af01820e6b872ba2412a87d7c))
+
 # [1.6.0](https://github.com/LucEast/obsidian-current-view/compare/1.5.4...1.6.0) (2026-05-30)
 
 
