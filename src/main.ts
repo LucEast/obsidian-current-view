@@ -9,6 +9,7 @@ import {
   ViewState,
   Menu,
   Notice,
+  EventRef,
 } from "obsidian";
 import { resolveViewModeDecision } from "./lib/view-mode";
 import {
@@ -28,10 +29,17 @@ type MarkdownViewState = {
   source: boolean;
 };
 
+// Fallback delay (ms) before applying view mode if Templater never fires its done event.
+// Covers the case where the file is newly created but no folder template is configured.
+const TEMPLATER_FALLBACK_TIMEOUT_MS = 3000;
+
 export default class CurrentViewSettingsPlugin extends Plugin {
   settings: CurrentViewSettings;
   openedFiles: string[];
   private activeNotice: Notice | undefined;
+  // Tracks files created in the current session so we can defer view mode changes
+  // until Templater has finished applying folder templates (see #58).
+  private recentlyCreated = new Set<string>();
 
   async onload() {
     await this.loadSettings();
@@ -41,6 +49,28 @@ export default class CurrentViewSettingsPlugin extends Plugin {
     this.addSettingTab(new CurrentViewSettingsTab(this.app, this));
 
     this.openedFiles = resetOpenedNotes(this.app);
+
+    // Track newly created markdown files so the Templater integration below can
+    // identify whether a file is being opened for the first time after creation.
+    this.registerEvent(
+      this.app.vault.on("create", (file) => {
+        if (file instanceof TFile && file.extension === "md") {
+          this.recentlyCreated.add(file.path);
+          // Self-cleaning fallback: remove the entry if nothing consumed it within
+          // a generous window (e.g. Templater is not installed / no template applies).
+          window.setTimeout(
+            () => this.recentlyCreated.delete(file.path),
+            TEMPLATER_FALLBACK_TIMEOUT_MS + 1000
+          );
+        }
+      })
+    );
+
+    // Returns the Templater plugin instance if installed and enabled, null otherwise.
+    // Follows the same pattern used for Notebook Navigator (src/ui/notebook-navigator.ts).
+    const getTemplaterPlugin = () =>
+      // @ts-ignore – accessing Obsidian's internal plugin registry
+      (this.app.plugins?.plugins?.["templater-obsidian"] ?? null);
 
     const readViewModeFromFrontmatterAndToggle = async (leaf: WorkspaceLeaf) => {
       let view = leaf.view instanceof MarkdownView ? leaf.view : null;
@@ -59,6 +89,33 @@ export default class CurrentViewSettingsPlugin extends Plugin {
       ) {
         this.openedFiles = resetOpenedNotes(this.app);
         return;
+      }
+
+      // Templater compatibility (#58): when a newly created file is opened and
+      // Templater is active, defer the view mode switch until Templater signals
+      // that all templates have been executed. This prevents Current View from
+      // locking the note into Reading mode before Templater can write its template.
+      //
+      // If Templater never fires the event (e.g. no folder template is configured
+      // for this file), the fallback timeout ensures we still apply the view mode.
+      if (view.file && this.recentlyCreated.has(view.file.path)) {
+        this.recentlyCreated.delete(view.file.path);
+        if (getTemplaterPlugin()) {
+          let ref: EventRef;
+          const applyAfterTemplater = () => {
+            this.app.workspace.offref(ref);
+            void readViewModeFromFrontmatterAndToggle(leaf);
+          };
+          ref = this.app.workspace.on(
+            "templater:all-templates-executed" as any,
+            applyAfterTemplater
+          );
+          window.setTimeout(() => {
+            this.app.workspace.offref(ref);
+            void readViewModeFromFrontmatterAndToggle(leaf);
+          }, TEMPLATER_FALLBACK_TIMEOUT_MS);
+          return;
+        }
       }
 
       const matchedRuleModes = collectMatchedRules(
