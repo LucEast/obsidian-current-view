@@ -1,3 +1,11 @@
+## [1.6.1-beta.2](https://github.com/LucEast/obsidian-current-view/compare/1.6.1-beta.1...1.6.1-beta.2) (2026-06-17)
+
+
+### Bug Fixes
+
+* defer view mode switch for Templater folder templates ([#58](https://github.com/LucEast/obsidian-current-view/issues/58)) ([bc2cafd](https://github.com/LucEast/obsidian-current-view/commit/bc2cafd87a07e1fc362415505f4e9a15f5c41380))
+* defer view mode switch for Templater folder templates ([#58](https://github.com/LucEast/obsidian-current-view/issues/58)) ([be7c0d6](https://github.com/LucEast/obsidian-current-view/commit/be7c0d62eedce9cb64932cab33d57ff21000cd88))
+
 ## [1.6.1-beta.1](https://github.com/LucEast/obsidian-current-view/compare/1.6.0...1.6.1-beta.1) (2026-06-16)
 
 
