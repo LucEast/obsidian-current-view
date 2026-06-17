@@ -31,6 +31,7 @@ type MarkdownViewState = {
 export default class CurrentViewSettingsPlugin extends Plugin {
   settings: CurrentViewSettings;
   openedFiles: string[];
+  private activeNotice: Notice | undefined;
 
   async onload() {
     await this.loadSettings();
@@ -202,7 +203,7 @@ export default class CurrentViewSettingsPlugin extends Plugin {
 
           if (this.settings.frontmatterChangeReload === "auto") {
             void readViewModeFromFrontmatterAndToggle(leaf);
-          } else {
+          } else if (!this.activeNotice) {
             const modeLabel =
               resolvedMode === "reading"
                 ? "Reading"
@@ -214,11 +215,14 @@ export default class CurrentViewSettingsPlugin extends Plugin {
               text: `Current View: view mode changed to ${modeLabel}. `,
             });
             const btn = frag.createEl("button", { text: "Apply now" });
-            const notice = new Notice(frag, 8000);
+            this.activeNotice = new Notice(frag, 8000);
+            const clearNotice = () => { this.activeNotice = undefined; };
             btn.addEventListener("click", () => {
-              notice.hide();
+              this.activeNotice?.hide();
+              clearNotice();
               void readViewModeFromFrontmatterAndToggle(leaf);
             });
+            window.setTimeout(clearNotice, 8000);
           }
         }, 500)
       )
