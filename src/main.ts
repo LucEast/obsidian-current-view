@@ -171,10 +171,9 @@ export default class CurrentViewSettingsPlugin extends Plugin {
         debounce((file: TFile) => {
           if (this.settings.frontmatterChangeReload === "off") return;
 
-          const leaf = this.app.workspace.activeLeaf;
-          if (!leaf) return;
-          const view = leaf.view instanceof MarkdownView ? leaf.view : null;
+          const view = this.app.workspace.getActiveViewOfType(MarkdownView);
           if (!view || view.file?.path !== file.path) return;
+          const leaf = view.leaf;
 
           const fileCache = this.app.metadataCache.getFileCache(file);
           const newFrontmatterValue =
@@ -210,7 +209,7 @@ export default class CurrentViewSettingsPlugin extends Plugin {
                 : resolvedMode === "live"
                 ? "Live Preview"
                 : "Source";
-            const frag = document.createDocumentFragment();
+            const frag = activeDocument.createDocumentFragment();
             frag.createEl("span", {
               text: `Current View: view mode changed to ${modeLabel}. `,
             });

@@ -27,7 +27,7 @@ export class CurrentViewSettingsTab extends PluginSettingTab {
       .setDesc("Custom frontmatter field to define view mode per note.")
       .addText((text) => {
         text
-          .setPlaceholder("current view")
+          .setPlaceholder("Current view")
           .setValue(this.plugin.settings.customFrontmatterKey)
           .onChange(async (value) => {
             this.plugin.settings.customFrontmatterKey = value || "current view";
@@ -78,11 +78,11 @@ export class CurrentViewSettingsTab extends PluginSettingTab {
       });
 
     // === Visual Feedback ===
-    new Setting(containerEl).setName("Visual Feedback").setHeading();
+    new Setting(containerEl).setName("Visual feedback").setHeading();
 
     new Setting(containerEl)
       .setName("Show lock icons")
-      .setDesc("Display lock status icons next to files and folders in File Explorer and Notebook Navigator.")
+      .setDesc("Display lock status icons next to files and folders in file explorer and notebook navigator.")
       .addToggle((toggle) => {
         toggle
           .setValue(this.plugin.settings.showExplorerIcons)
@@ -107,11 +107,11 @@ export class CurrentViewSettingsTab extends PluginSettingTab {
     new Setting(containerEl)
       .setName("Frontmatter change detection")
       .setDesc(
-        "When the frontmatter view mode key of the active note changes, react without requiring a file switch."
+        "When the frontmatter view mode key of the active note changes, update the view without requiring a file switch."
       )
       .addDropdown((dd) => {
         dd.addOption("off", "Off");
-        dd.addOption("notify", "Show notification with Apply button");
+        dd.addOption("notify", "Show notification with apply button");
         dd.addOption("auto", "Apply automatically");
         dd.setValue(this.plugin.settings.frontmatterChangeReload).onChange(async (value) => {
           this.plugin.settings.frontmatterChangeReload = value as "off" | "notify" | "auto";
@@ -120,7 +120,7 @@ export class CurrentViewSettingsTab extends PluginSettingTab {
       });
 
     // === View Mode Icons ===
-    new Setting(containerEl).setName("View Mode Icons").setHeading();
+    new Setting(containerEl).setName("View mode icons").setHeading();
 
     new Setting(containerEl)
       .setDesc(createFragment((frag) => {
@@ -141,7 +141,7 @@ export class CurrentViewSettingsTab extends PluginSettingTab {
     ];
 
     // === Folder Rules ===
-    new Setting(containerEl).setName("Folder Rules").setHeading();
+    new Setting(containerEl).setName("Folder rules").setHeading();
     
     new Setting(containerEl)
       .setDesc("Apply view mode to all notes in a folder. Use the context menu (right-click) on folders to quickly lock them. Order matters: rules are checked from bottom (highest priority) to top (lowest priority).");
@@ -212,7 +212,7 @@ export class CurrentViewSettingsTab extends PluginSettingTab {
     });
 
     // === Tag Rules ===
-    new Setting(containerEl).setName("Tag Rules").setHeading();
+    new Setting(containerEl).setName("Tag rules").setHeading();
 
     new Setting(containerEl)
       .setDesc("Apply view mode to notes that have a specific tag. Tag rules override folder rules but can be overridden by file pattern rules.");
@@ -277,10 +277,10 @@ export class CurrentViewSettingsTab extends PluginSettingTab {
     });
 
     // === File Pattern Rules ===
-    new Setting(containerEl).setName("File Pattern Rules").setHeading();
+    new Setting(containerEl).setName("File pattern rules").setHeading();
     
     new Setting(containerEl)
-      .setDesc("Match files using RegEx patterns or exact paths. Use the context menu (right-click) on files to quickly lock them. Examples: \" - All$\" (files ending with \" - All\"), \"^2024-\" (files starting with \"2024-\"). Note: File patterns override folder rules for matching files.");
+      .setDesc("Match files using regex patterns or exact paths. Use the context menu (right-click) on files to quickly lock them. Examples: \" - All$\" (files ending with \" - all\"), \"^2024-\" (files starting with \"2024-\"). Note: File patterns override folder rules for matching files.");
 
     new Setting(containerEl)
       .setName("Add file pattern")

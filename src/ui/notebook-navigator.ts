@@ -41,7 +41,7 @@ export const initNotebookNavigatorIntegration = (plugin: CurrentViewSettingsPlug
   tryRegisterMenus(plugin);
   
   // Also try again after a delay, in case Notebook Navigator loads after us
-  activeWindow.setTimeout(() => {
+  window.setTimeout(() => {
     if (!fileMenuDispose && !folderMenuDispose) {
       tryRegisterMenus(plugin);
     }
@@ -59,16 +59,16 @@ const tryRegisterMenus = (plugin: CurrentViewSettingsPlugin) => {
   
   if (api?.menus) {
     // Register menu items using the official API
-    fileMenuDispose = api.menus.registerFileMenu(function (this: void, { addItem, file, selection }) {
-      if (selection.mode !== 'single') {
+    fileMenuDispose = api.menus.registerFileMenu((ctx) => {
+      if (ctx.selection.mode !== 'single') {
         return; // Only show menu for single file selection
       }
-      
-      addLockMenuItemsToNotebookNavigator(addItem, file.path, "file", plugin);
+
+      addLockMenuItemsToNotebookNavigator((cb) => ctx.addItem(cb), ctx.file.path, "file", plugin);
     });
 
-    folderMenuDispose = api.menus.registerFolderMenu(function (this: void, { addItem, folder }) {
-      addLockMenuItemsToNotebookNavigator(addItem, folder.path, "folder", plugin);
+    folderMenuDispose = api.menus.registerFolderMenu((ctx) => {
+      addLockMenuItemsToNotebookNavigator((cb) => ctx.addItem(cb), ctx.folder.path, "folder", plugin);
     });
   }
 };
@@ -85,7 +85,7 @@ export const destroyNotebookNavigatorIntegration = () => {
 
   // Cleanup file list observer and pending debounce
   if (decorateDebounceTimer) {
-    activeWindow.clearTimeout(decorateDebounceTimer);
+    window.clearTimeout(decorateDebounceTimer);
     decorateDebounceTimer = null;
   }
   fileListObserver?.disconnect();
@@ -166,8 +166,8 @@ const extractPathFromElement = (el: HTMLElement): string | null => {
  */
 const setupFileListObserver = (plugin: CurrentViewSettingsPlugin) => {
   fileListObserver = new MutationObserver(() => {
-    if (decorateDebounceTimer) activeWindow.clearTimeout(decorateDebounceTimer);
-    decorateDebounceTimer = activeWindow.setTimeout(() => {
+    if (decorateDebounceTimer) window.clearTimeout(decorateDebounceTimer);
+    decorateDebounceTimer = window.setTimeout(() => {
       decorateDebounceTimer = null;
       decorateNotebookNavigator(plugin);
     }, 150);
