@@ -1,3 +1,10 @@
+## [1.6.2](https://github.com/LucEast/obsidian-current-view/compare/1.6.1...1.6.2) (2026-06-17)
+
+
+### Bug Fixes
+
+* address Obsidian store scan warnings ([6e8b736](https://github.com/LucEast/obsidian-current-view/commit/6e8b7361a9b4a7fd66d65354cfad3ff67c843da1))
+
 ## [1.6.1](https://github.com/LucEast/obsidian-current-view/compare/1.6.0...1.6.1) (2026-06-17)
 
 
