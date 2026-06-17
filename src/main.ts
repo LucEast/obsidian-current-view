@@ -9,6 +9,7 @@ import {
   ViewState,
   Menu,
   Notice,
+  EventRef,
 } from "obsidian";
 import { resolveViewModeDecision } from "./lib/view-mode";
 import {
@@ -28,10 +29,13 @@ type MarkdownViewState = {
   source: boolean;
 };
 
+const TEMPLATER_FALLBACK_TIMEOUT_MS = 3000;
+
 export default class CurrentViewSettingsPlugin extends Plugin {
   settings: CurrentViewSettings;
   openedFiles: string[];
   private activeNotice: Notice | undefined;
+  private recentlyCreated = new Set<string>();
 
   async onload() {
     await this.loadSettings();
@@ -41,6 +45,24 @@ export default class CurrentViewSettingsPlugin extends Plugin {
     this.addSettingTab(new CurrentViewSettingsTab(this.app, this));
 
     this.openedFiles = resetOpenedNotes(this.app);
+
+    // Track newly created markdown files so the Templater integration below can
+    // identify whether a file is being opened for the first time after creation.
+    this.registerEvent(
+      this.app.vault.on("create", (file) => {
+        if (file instanceof TFile && file.extension === "md") {
+          this.recentlyCreated.add(file.path);
+          window.setTimeout(
+            () => this.recentlyCreated.delete(file.path),
+            TEMPLATER_FALLBACK_TIMEOUT_MS + 1000
+          );
+        }
+      })
+    );
+
+    const getTemplaterPlugin = () =>
+      // @ts-ignore - Obsidian does not type the internal community plugin registry.
+      this.app.plugins?.plugins?.["templater-obsidian"] ?? null;
 
     const readViewModeFromFrontmatterAndToggle = async (leaf: WorkspaceLeaf) => {
       let view = leaf.view instanceof MarkdownView ? leaf.view : null;
@@ -59,6 +81,30 @@ export default class CurrentViewSettingsPlugin extends Plugin {
       ) {
         this.openedFiles = resetOpenedNotes(this.app);
         return;
+      }
+
+      if (view.file && this.recentlyCreated.has(view.file.path)) {
+        this.recentlyCreated.delete(view.file.path);
+        if (getTemplaterPlugin()) {
+          let ref: EventRef | undefined;
+          let timeout: number | undefined;
+          let didApply = false;
+
+          const applyDeferredViewMode = () => {
+            if (didApply) return;
+            didApply = true;
+            if (ref) this.app.workspace.offref(ref);
+            if (timeout) window.clearTimeout(timeout);
+            void readViewModeFromFrontmatterAndToggle(leaf);
+          };
+
+          ref = this.app.workspace.on(
+            "templater:all-templates-executed" as any,
+            applyDeferredViewMode
+          );
+          timeout = window.setTimeout(applyDeferredViewMode, TEMPLATER_FALLBACK_TIMEOUT_MS);
+          return;
+        }
       }
 
       const matchedRuleModes = collectMatchedRules(
