@@ -21,7 +21,7 @@
 		"@typescript-eslint/parser": "8.60.0",
 		"@vitest/coverage-v8": "^1.6.0",
 		"builtin-modules": "5.2.0",
-		"conventional-changelog-conventionalcommits": "^9.1.0",
+		"conventional-changelog-conventionalcommits": "^10.0.0",
 		"esbuild": "0.28.0",
 		"eslint-plugin-obsidianmd": "^0.3.0",
 		"obsidian": "latest",
