@@ -1,3 +1,10 @@
+## [1.6.3](https://github.com/LucEast/obsidian-current-view/compare/1.6.2...1.6.3) (2026-07-19)
+
+
+### Bug Fixes
+
+* defer view mode switch for Templater folder templates ([#58](https://github.com/LucEast/obsidian-current-view/issues/58)) ([df06ceb](https://github.com/LucEast/obsidian-current-view/commit/df06ceb9dae6914e238c6dc183ca8d0a0af17816))
+
 ## [1.6.2](https://github.com/LucEast/obsidian-current-view/compare/1.6.1...1.6.2) (2026-06-17)
 
 
