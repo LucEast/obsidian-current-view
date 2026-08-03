@@ -29,10 +29,14 @@ This is an Obsidian plugin that automatically sets view modes (Reading, Live Pre
 ### View Mode Priority
 
 When resolving which mode to apply (in `resolveViewModeDecision`):
-1. File pattern rules (exact path or regex match)
-2. Folder rules (deepest matching folder wins)
-3. Frontmatter value (customizable key, default `current view`)
-4. Obsidian default view mode (fallback)
+1. Frontmatter value (customizable key, default `current view`) — returns immediately
+2. File pattern rules (exact path or regex match)
+3. Tag rules (any matching tag in frontmatter)
+4. Folder rules (deepest matching folder wins)
+5. Property rules (frontmatter property matches a configured value)
+6. Obsidian default view mode (fallback)
+
+Mechanically, rules 2–5 share one list: `collectMatchedRules()` pushes property rules first, then folder, tag, and file pattern rules, and the **last** matched entry wins.
 
 ### Testing
 

@@ -38,6 +38,7 @@ Configure view modes based on:
 - **📁 Folder paths** – All notes in `Templates/` open in Source mode
 - **🔍 File patterns** – Match files using RegEx (e.g., all daily notes)
 - **🏷️ Tag rules** – Match notes by Obsidian tags (e.g., all notes tagged `sent` open in Reading mode)
+- **🔑 Property rules** – Match notes by the value of any frontmatter property (e.g., all notes with `status: draft` open in Live Preview)
 - **📋 Frontmatter** – Per-note control with custom metadata field
 
 <p align="center">
@@ -84,7 +85,8 @@ When you open a note, Current View checks for view mode rules in this order:
 2. File Pattern Rules  →  Exact path match or RegEx pattern
 3. Tag Rules           →  Any matching tag in frontmatter
 4. Folder Rules        →  Deepest matching folder wins
-5. Obsidian Default    →  Your global Obsidian setting
+5. Property Rules      →  Frontmatter property matches a configured value
+6. Obsidian Default    →  Your global Obsidian setting
 ```
 
 **Example:**
@@ -145,6 +147,15 @@ Mode: reading
 ```
 Any note with `tags: [sent]` in its frontmatter will automatically open in Reading mode.
 
+**🔑 Notes in a review workflow:**
+```yaml
+# Notes with acceptance-status: proposed open in Reading mode
+Property: acceptance-status
+Value: proposed
+Mode: reading
+```
+Matching is trimmed and case-insensitive; list properties match if any element matches, and booleans/numbers match their string form (e.g. value `true` matches `retired: true`). Leave the value empty to match any note where the property is present and non-empty. Property rules never write to your notes — the view mode is derived on the fly, so changing the property on an open note is picked up by the frontmatter change detection setting.
+
 ---
 
 ## ⚙️ Settings
@@ -178,6 +189,7 @@ Any note with `tags: [sent]` in its frontmatter will automatically open in Readi
 
 - **Folder Rules**: Apply view mode to all notes in a folder (context menu locks write here)
 - **Tag Rules**: Apply view mode to notes that have a specific tag
+- **Property Rules**: Apply view mode to notes where a frontmatter property has a specific value (lowest priority of all rule types)
 - **File Patterns**: RegEx patterns or exact file paths (context menu file locks write here)
 
 ---
