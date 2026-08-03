@@ -177,10 +177,30 @@ describe("matchPropertyRules", () => {
 
   test("empty rule value matches any present non-empty value", () => {
     expect(matchPropertyRules({ project: "x" }, [rule("project", "")])).toEqual([`${key}: reading`]);
+    expect(matchPropertyRules({ project: ["x"] }, [rule("project", "")])).toEqual([`${key}: reading`]);
     expect(matchPropertyRules({ project: "" }, [rule("project", "")])).toEqual([]);
     expect(matchPropertyRules({ project: null }, [rule("project", "")])).toEqual([]);
     expect(matchPropertyRules({ project: [] }, [rule("project", "")])).toEqual([]);
+    expect(matchPropertyRules({ project: [""] }, [rule("project", "")])).toEqual([]);
+    expect(matchPropertyRules({ project: [null] }, [rule("project", "")])).toEqual([]);
     expect(matchPropertyRules({}, [rule("project", "")])).toEqual([]);
+  });
+
+  test("never resolves inherited object members as frontmatter values", () => {
+    expect(matchPropertyRules({ a: "b" }, [rule("toString", "")])).toEqual([]);
+    expect(matchPropertyRules({ a: "b" }, [rule("constructor", "")])).toEqual([]);
+    expect(matchPropertyRules({ toString: "custom" }, [rule("toString", "custom")]))
+      .toEqual([`${key}: reading`]);
+  });
+
+  test("tolerates malformed rule entries without throwing", () => {
+    const malformed = [
+      { mode: `${key}: reading` },
+      { key: 3, value: "b", mode: `${key}: reading` },
+      { key: "a", value: null, mode: `${key}: reading` },
+      { key: "a", value: "b", mode: `${key}: reading` },
+    ] as unknown as Parameters<typeof matchPropertyRules>[1];
+    expect(matchPropertyRules({ a: "b" }, malformed)).toEqual([`${key}: reading`]);
   });
 
   test("skips rules with an empty key or empty mode", () => {
@@ -249,37 +269,13 @@ describe("resolveLockModeForPath", () => {
     expect(resolveLockModeForPath(app, settings, file.path)).toBe(`${key}: reading`);
   });
 
-  test("falls back to property rules when nothing else matches", () => {
+  test("property rules never surface as explorer locks (Unlock cannot remove them)", () => {
     const file = new TFile("notes/a.md");
     const app = makeApp({ "acceptance-status": "proposed" });
     app.vault.getAbstractFileByPath = () => file;
     const settings = makeSettings({
       propertyRules: [{ key: "acceptance-status", value: "proposed", mode: `${key}: reading` }],
     });
-    expect(resolveLockModeForPath(app, settings, file.path)).toBe(`${key}: reading`);
-  });
-
-  test("property rules lose to folder rules", () => {
-    const file = new TFile("notes/a.md");
-    const app = makeApp({ "acceptance-status": "proposed" });
-    app.vault.getAbstractFileByPath = () => file;
-    const settings = makeSettings({
-      propertyRules: [{ key: "acceptance-status", value: "proposed", mode: `${key}: reading` }],
-      folderRules: [{ path: "notes", mode: `${key}: source` }],
-    });
-    expect(resolveLockModeForPath(app, settings, file.path)).toBe(`${key}: source`);
-  });
-
-  test("last matching property rule wins", () => {
-    const file = new TFile("a.md");
-    const app = makeApp({ a: "1", b: "2" });
-    app.vault.getAbstractFileByPath = () => file;
-    const settings = makeSettings({
-      propertyRules: [
-        { key: "a", value: "1", mode: `${key}: reading` },
-        { key: "b", value: "2", mode: `${key}: live` },
-      ],
-    });
-    expect(resolveLockModeForPath(app, settings, file.path)).toBe(`${key}: live`);
+    expect(resolveLockModeForPath(app, settings, file.path)).toBeNull();
   });
 });

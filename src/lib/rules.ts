@@ -16,12 +16,11 @@ export const getFileTags = (app: App, file: TFile | null): string[] => {
 export type ViewLockMode = "reading" | "source" | "live";
 
 const propertyValueMatches = (fmValue: unknown, ruleValue: string): boolean => {
-  const normalizedRuleValue = ruleValue.trim().toLowerCase();
   if (Array.isArray(fmValue)) {
-    if (normalizedRuleValue === "") return fmValue.length > 0;
     return fmValue.some((element) => propertyValueMatches(element, ruleValue));
   }
   if (fmValue === null || fmValue === undefined) return false;
+  const normalizedRuleValue = ruleValue.trim().toLowerCase();
   const normalizedFmValue = String(fmValue).trim().toLowerCase();
   if (normalizedRuleValue === "") return normalizedFmValue !== "";
   return normalizedFmValue === normalizedRuleValue;
@@ -33,9 +32,14 @@ export const matchPropertyRules = (
 ): string[] => {
   if (!frontmatter) return [];
   const matched: string[] = [];
-  for (const { key, value, mode } of propertyRules) {
-    if (!key.trim() || !mode) continue;
-    if (propertyValueMatches(frontmatter[key.trim()], value)) {
+  for (const rule of propertyRules) {
+    // Tolerate malformed data.json entries — this runs on every leaf/metadata event
+    const key = typeof rule.key === "string" ? rule.key.trim() : "";
+    const mode = typeof rule.mode === "string" ? rule.mode : "";
+    if (!key || !mode || typeof rule.value !== "string") continue;
+    // Own-property check so keys like "toString" never hit the prototype chain
+    if (!Object.prototype.hasOwnProperty.call(frontmatter, key)) continue;
+    if (propertyValueMatches(frontmatter[key], rule.value)) {
       matched.push(mode);
     }
   }
@@ -136,14 +140,11 @@ export const resolveLockModeForPath = (
     .pop();
   if (folderRule) return folderRule.mode;
 
-  if (file instanceof TFile) {
-    const fileCache = app.metadataCache.getFileCache(file);
-    const propertyMatches = matchPropertyRules(
-      fileCache?.frontmatter,
-      settings.propertyRules ?? []
-    );
-    if (propertyMatches.length) return propertyMatches[propertyMatches.length - 1];
-  }
+  // Property rules are deliberately NOT consulted here: this resolver feeds the
+  // explorer lock badges and the Lock/Unlock context menu, and Unlock cannot
+  // remove a vault-wide property rule — surfacing them would create
+  // "locks" that falsely claim to unlock. They only affect view-mode
+  // application via collectMatchedRules.
 
   return null;
 };
