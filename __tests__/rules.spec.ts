@@ -1,4 +1,4 @@
-import { getFileTags, collectMatchedRules, resolveLockModeForPath } from "../src/lib/rules";
+import { getFileTags, collectMatchedRules, resolveLockModeForPath, matchPropertyRules } from "../src/lib/rules";
 import { App, TFile } from "obsidian";
 import type { CurrentViewSettings } from "../src/config/settings";
 
@@ -145,6 +145,93 @@ describe("collectMatchedRules – tag rules", () => {
     const result = collectMatchedRules(app, settings, file, () => false);
     // folder rule first, tag rule second → tag rule wins
     expect(result).toEqual([`${key}: live`, `${key}: reading`]);
+  });
+});
+
+describe("matchPropertyRules", () => {
+  const rule = (k: string, v: string) => ({ key: k, value: v, mode: `${key}: reading` });
+
+  test("matches a string value, trimmed and case-insensitive", () => {
+    expect(matchPropertyRules({ "acceptance-status": "Proposed " }, [rule("acceptance-status", "proposed")]))
+      .toEqual([`${key}: reading`]);
+  });
+
+  test("does not match a different value", () => {
+    expect(matchPropertyRules({ "acceptance-status": "accepted" }, [rule("acceptance-status", "proposed")]))
+      .toEqual([]);
+  });
+
+  test("does not match when the property is missing", () => {
+    expect(matchPropertyRules({}, [rule("acceptance-status", "proposed")])).toEqual([]);
+  });
+
+  test("matches list values when any element matches", () => {
+    expect(matchPropertyRules({ cssclasses: ["wide", "Archived"] }, [rule("cssclasses", "archived")]))
+      .toEqual([`${key}: reading`]);
+  });
+
+  test("matches booleans and numbers by string form", () => {
+    expect(matchPropertyRules({ retired: true }, [rule("retired", "true")])).toEqual([`${key}: reading`]);
+    expect(matchPropertyRules({ priority: 2 }, [rule("priority", "2")])).toEqual([`${key}: reading`]);
+  });
+
+  test("empty rule value matches any present non-empty value", () => {
+    expect(matchPropertyRules({ project: "x" }, [rule("project", "")])).toEqual([`${key}: reading`]);
+    expect(matchPropertyRules({ project: "" }, [rule("project", "")])).toEqual([]);
+    expect(matchPropertyRules({ project: null }, [rule("project", "")])).toEqual([]);
+    expect(matchPropertyRules({ project: [] }, [rule("project", "")])).toEqual([]);
+    expect(matchPropertyRules({}, [rule("project", "")])).toEqual([]);
+  });
+
+  test("skips rules with an empty key or empty mode", () => {
+    expect(matchPropertyRules({ a: "b" }, [
+      { key: "", value: "b", mode: `${key}: reading` },
+      { key: "a", value: "b", mode: "" },
+    ])).toEqual([]);
+  });
+
+  test("returns null-safe empty array without frontmatter", () => {
+    expect(matchPropertyRules(undefined, [rule("a", "b")])).toEqual([]);
+  });
+
+  test("returns multiple matches in settings order", () => {
+    expect(matchPropertyRules({ a: "1", b: "2" }, [
+      { key: "a", value: "1", mode: `${key}: reading` },
+      { key: "b", value: "2", mode: `${key}: live` },
+    ])).toEqual([`${key}: reading`, `${key}: live`]);
+  });
+});
+
+describe("collectMatchedRules – property rules", () => {
+  test("includes property-rule matches", () => {
+    const app = makeApp({ "acceptance-status": "proposed" });
+    const settings = makeSettings({
+      propertyRules: [{ key: "acceptance-status", value: "proposed", mode: `${key}: reading` }],
+    });
+    const file = new TFile("notes/a.md");
+    expect(collectMatchedRules(app, settings, file, () => false)).toEqual([`${key}: reading`]);
+  });
+
+  test("property rules are pushed first so every other rule type wins (last-wins)", () => {
+    const app = makeApp({ "acceptance-status": "proposed", tags: ["sent"] });
+    const settings = makeSettings({
+      propertyRules: [{ key: "acceptance-status", value: "proposed", mode: `${key}: reading` }],
+      folderRules: [{ path: "notes", mode: `${key}: source` }],
+      tagRules: [{ tag: "sent", mode: `${key}: live` }],
+    });
+    const file = new TFile("notes/a.md");
+    expect(collectMatchedRules(app, settings, file, () => false)).toEqual([
+      `${key}: reading`,
+      `${key}: source`,
+      `${key}: live`,
+    ]);
+  });
+
+  test("tolerates settings without propertyRules (legacy data.json)", () => {
+    const app = makeApp({ tags: ["sent"] });
+    const settings = makeSettings({ tagRules: [{ tag: "sent", mode: `${key}: reading` }] });
+    const file = new TFile("a.md");
+    expect(collectMatchedRules(app, settings, file, () => false)).toEqual([`${key}: reading`]);
   });
 });
 

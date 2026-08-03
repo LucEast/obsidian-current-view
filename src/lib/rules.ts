@@ -1,5 +1,5 @@
 import { normalizeFrontmatterMode } from "./view-mode";
-import type { CurrentViewSettings } from "../config/settings";
+import type { CurrentViewSettings, PropertyRule } from "../config/settings";
 import { normalizePath, isPathWithin } from "../config/settings";
 import { TFile, App } from "obsidian";
 
@@ -15,6 +15,33 @@ export const getFileTags = (app: App, file: TFile | null): string[] => {
 
 export type ViewLockMode = "reading" | "source" | "live";
 
+const propertyValueMatches = (fmValue: unknown, ruleValue: string): boolean => {
+  const normalizedRuleValue = ruleValue.trim().toLowerCase();
+  if (Array.isArray(fmValue)) {
+    if (normalizedRuleValue === "") return fmValue.length > 0;
+    return fmValue.some((element) => propertyValueMatches(element, ruleValue));
+  }
+  if (fmValue === null || fmValue === undefined) return false;
+  const normalizedFmValue = String(fmValue).trim().toLowerCase();
+  if (normalizedRuleValue === "") return normalizedFmValue !== "";
+  return normalizedFmValue === normalizedRuleValue;
+};
+
+export const matchPropertyRules = (
+  frontmatter: Record<string, unknown> | null | undefined,
+  propertyRules: PropertyRule[]
+): string[] => {
+  if (!frontmatter) return [];
+  const matched: string[] = [];
+  for (const { key, value, mode } of propertyRules) {
+    if (!key.trim() || !mode) continue;
+    if (propertyValueMatches(frontmatter[key.trim()], value)) {
+      matched.push(mode);
+    }
+  }
+  return matched;
+};
+
 export const collectMatchedRules = (
   app: App,
   settings: CurrentViewSettings,
@@ -22,6 +49,12 @@ export const collectMatchedRules = (
   filenameMatch: (pattern: string) => boolean
 ): string[] => {
   const matchedRuleModes: string[] = [];
+
+  // Property rules (lowest priority — every later rule type overrides via last-wins)
+  const fileCache = file ? app.metadataCache.getFileCache(file) : null;
+  matchedRuleModes.push(
+    ...matchPropertyRules(fileCache?.frontmatter, settings.propertyRules ?? [])
+  );
 
   // Folder rules (deepest wins because later entries override earlier ones)
   const matchedFolders = settings.folderRules

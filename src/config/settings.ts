@@ -3,6 +3,7 @@ import { App, TFolder } from "obsidian";
 export type PathRule = { path: string; mode: string };
 export type PatternRule = { pattern: string; mode: string };
 export type TagRule = { tag: string; mode: string };
+export type PropertyRule = { key: string; value: string; mode: string };
 
 export interface CurrentViewSettings {
   debounceTimeout: number;
@@ -13,6 +14,7 @@ export interface CurrentViewSettings {
   explicitFileRules: PathRule[]; // legacy; migrated into filePatterns
   filePatterns: PatternRule[];
   tagRules: TagRule[];
+  propertyRules: PropertyRule[];
   showExplorerIcons: boolean;
   showLockNotifications: boolean;
   iconReading: string;
@@ -30,6 +32,7 @@ export const DEFAULT_SETTINGS: CurrentViewSettings = {
   explicitFileRules: [],
   filePatterns: [{ pattern: "", mode: "" }],
   tagRules: [{ tag: "", mode: "" }],
+  propertyRules: [{ key: "", value: "", mode: "" }],
   showExplorerIcons: true,
   showLockNotifications: true,
   iconReading: "book-open",
