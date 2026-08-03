@@ -136,5 +136,14 @@ export const resolveLockModeForPath = (
     .pop();
   if (folderRule) return folderRule.mode;
 
+  if (file instanceof TFile) {
+    const fileCache = app.metadataCache.getFileCache(file);
+    const propertyMatches = matchPropertyRules(
+      fileCache?.frontmatter,
+      settings.propertyRules ?? []
+    );
+    if (propertyMatches.length) return propertyMatches[propertyMatches.length - 1];
+  }
+
   return null;
 };

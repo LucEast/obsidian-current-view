@@ -248,4 +248,38 @@ describe("resolveLockModeForPath", () => {
 
     expect(resolveLockModeForPath(app, settings, file.path)).toBe(`${key}: reading`);
   });
+
+  test("falls back to property rules when nothing else matches", () => {
+    const file = new TFile("notes/a.md");
+    const app = makeApp({ "acceptance-status": "proposed" });
+    app.vault.getAbstractFileByPath = () => file;
+    const settings = makeSettings({
+      propertyRules: [{ key: "acceptance-status", value: "proposed", mode: `${key}: reading` }],
+    });
+    expect(resolveLockModeForPath(app, settings, file.path)).toBe(`${key}: reading`);
+  });
+
+  test("property rules lose to folder rules", () => {
+    const file = new TFile("notes/a.md");
+    const app = makeApp({ "acceptance-status": "proposed" });
+    app.vault.getAbstractFileByPath = () => file;
+    const settings = makeSettings({
+      propertyRules: [{ key: "acceptance-status", value: "proposed", mode: `${key}: reading` }],
+      folderRules: [{ path: "notes", mode: `${key}: source` }],
+    });
+    expect(resolveLockModeForPath(app, settings, file.path)).toBe(`${key}: source`);
+  });
+
+  test("last matching property rule wins", () => {
+    const file = new TFile("a.md");
+    const app = makeApp({ a: "1", b: "2" });
+    app.vault.getAbstractFileByPath = () => file;
+    const settings = makeSettings({
+      propertyRules: [
+        { key: "a", value: "1", mode: `${key}: reading` },
+        { key: "b", value: "2", mode: `${key}: live` },
+      ],
+    });
+    expect(resolveLockModeForPath(app, settings, file.path)).toBe(`${key}: live`);
+  });
 });
