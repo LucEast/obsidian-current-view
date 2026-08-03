@@ -22,7 +22,7 @@ This is an Obsidian plugin that automatically sets view modes (Reading, Live Pre
 - `src/main.ts` - Plugin entry point. Registers `active-leaf-change` event listener (with optional debounce), context menus for file/folder locking, and file explorer decorations. Contains the core `readViewModeFromFrontmatterAndToggle` logic.
 - `src/config/settings.ts` - Settings interface (`CurrentViewSettings`), defaults, path normalization utilities, and migration functions for legacy data.
 - `src/lib/view-mode.ts` - Pure functions for view mode resolution. `resolveViewModeDecision()` is the main decision function that takes matched rules and frontmatter, returns the final mode.
-- `src/lib/rules.ts` - Rule matching logic. `collectMatchedRules()` gathers all applicable folder/file pattern rules. `resolveFrontmatterMode()` extracts mode from note frontmatter.
+- `src/lib/rules.ts` - Rule matching logic. `collectMatchedRules()` gathers all applicable property, folder, tag, and file pattern rules (in that push order; last wins). `resolveFrontmatterMode()` extracts mode from note frontmatter.
 - `src/ui/context-menu.ts` - File explorer context menu integration and lock badge decorations.
 - `src/ui/settings-tab.ts` - Plugin settings UI.
 
