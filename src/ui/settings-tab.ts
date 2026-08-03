@@ -276,6 +276,74 @@ export class CurrentViewSettingsTab extends PluginSettingTab {
       div.appendChild(containerEl.lastChild as Node);
     });
 
+    // === Property Rules ===
+    new Setting(containerEl).setName("Property rules").setHeading();
+
+    new Setting(containerEl)
+      .setDesc(
+        "Apply view mode to notes where a frontmatter property has a specific value (e.g. key \"acceptance-status\", value \"proposed\"). Leave the value empty to match any note where the property is present and non-empty. Property rules have the lowest priority: folder rules, tag rules, file patterns, and the frontmatter key all override them."
+      );
+
+    new Setting(containerEl)
+      .setName("Add property rule")
+      .setDesc("Click to add a new property rule")
+      .addButton((button) => {
+        button
+          .setTooltip("Add property rule")
+          .setButtonText("+")
+          .setCta()
+          .onClick(async () => {
+            this.plugin.settings.propertyRules.push({ key: "", value: "", mode: "" });
+            await this.plugin.saveSettings();
+            this.display();
+          });
+      });
+
+    this.plugin.settings.propertyRules.forEach((rule, index) => {
+      const div = containerEl.createDiv();
+      div.addClass("force-view-mode-div");
+      div.addClass("force-view-mode-folder");
+
+      const s = new Setting(this.containerEl)
+        .addText((cb) => {
+          cb.setPlaceholder("Property (e.g. acceptance-status)")
+            .setValue(rule.key)
+            .onChange(async (value) => {
+              this.plugin.settings.propertyRules[index].key = value;
+              await this.plugin.saveSettings();
+            });
+        })
+        .addText((cb) => {
+          cb.setPlaceholder("Value (e.g. proposed)")
+            .setValue(rule.value)
+            .onChange(async (value) => {
+              this.plugin.settings.propertyRules[index].value = value;
+              await this.plugin.saveSettings();
+            });
+        })
+        .addDropdown((cb) => {
+          modes.forEach((mode) => {
+            cb.addOption(mode, mode);
+          });
+          cb.setValue(rule.mode || "default").onChange(async (value) => {
+            this.plugin.settings.propertyRules[index].mode = value;
+            await this.plugin.saveSettings();
+          });
+        })
+        .addExtraButton((cb) => {
+          cb.setIcon("cross")
+            .setTooltip("Delete")
+            .onClick(async () => {
+              this.plugin.settings.propertyRules.splice(index, 1);
+              await this.plugin.saveSettings();
+              this.display();
+            });
+        });
+
+      s.infoEl.remove();
+      div.appendChild(containerEl.lastChild as Node);
+    });
+
     // === File Pattern Rules ===
     new Setting(containerEl).setName("File pattern rules").setHeading();
     
