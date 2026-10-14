@@ -17,19 +17,24 @@
 	"license": "MIT",
 	"devDependencies": {
 		"@types/node": "^24.0.0",
-		"@typescript-eslint/eslint-plugin": "8.60.0",
-		"@typescript-eslint/parser": "8.60.0",
-		"@vitest/coverage-v8": "^1.6.0",
+		"@typescript-eslint/eslint-plugin": "8.71.2",
+		"@typescript-eslint/parser": "8.71.2",
+		"@vitest/coverage-v8": "^5.0.4",
 		"builtin-modules": "5.2.0",
 		"conventional-changelog-conventionalcommits": "^9.1.0",
-		"esbuild": "0.28.0",
-		"eslint-plugin-obsidianmd": "^0.3.0",
+		"esbuild": "0.28.2",
+		"eslint-plugin-obsidianmd": "^0.4.2",
 		"obsidian": "latest",
 		"tslib": "2.8.1",
 		"typescript": "5.9.3",
-		"vitest": "^1.6.0"
+		"vitest": "^5.0.4"
 	},
 	"dependencies": {
 		"semantic-release-plugin-update-version-in-files": "^2.0.0"
+	},
+	"overrides": {
+		"eslint-plugin-obsidianmd": {
+			"moment": "^2.31.0"
+		}
 	}
 }
