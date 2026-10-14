@@ -1,3 +1,10 @@
+## [1.6.4](https://github.com/LucEast/obsidian-current-view/compare/1.6.3...1.6.4) (2026-10-14)
+
+
+### Bug Fixes
+
+* **deps:** update dependencies to resolve security vulnerabilities ([88e1548](https://github.com/LucEast/obsidian-current-view/commit/88e154808479602206e9f78242c70ca8ae9fe4ba))
+
 ## [1.6.3](https://github.com/LucEast/obsidian-current-view/compare/1.6.2...1.6.3) (2026-07-19)
 
 
