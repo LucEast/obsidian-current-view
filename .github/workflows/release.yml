@@ -1,13 +1,56 @@
 name: Release Obsidian Plugin
 
 on:
+    pull_request:
     push:
         branches:
             - main
             - beta
 
 jobs:
+    security:
+        name: Trivy Security Scan
+        runs-on: ubuntu-latest
+        timeout-minutes: 15
+        permissions:
+            contents: read
+
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v6
+              with:
+                  persist-credentials: false
+
+            - name: Scan dependencies
+              uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+              with:
+                  version: v0.70.0
+                  scan-type: fs
+                  scan-ref: .
+                  scanners: vuln
+                  format: table
+                  severity: HIGH,CRITICAL
+                  exit-code: "1"
+                  skip-dirs: node_modules
+              env:
+                  # Build and test tools are part of the supply chain, too.
+                  TRIVY_INCLUDE_DEV_DEPS: "true"
+
+            - name: Scan secrets
+              if: ${{ !cancelled() }}
+              uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+              with:
+                  version: v0.70.0
+                  scan-type: fs
+                  scan-ref: .
+                  scanners: secret
+                  format: table
+                  exit-code: "1"
+                  skip-dirs: node_modules
+
     semantic-release:
+        if: github.event_name == 'push'
+        needs: security
         runs-on: ubuntu-latest
 
         steps:
