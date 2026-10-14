@@ -20,7 +20,7 @@
 		"@typescript-eslint/eslint-plugin": "8.71.2",
 		"@typescript-eslint/parser": "8.71.2",
 		"@vitest/coverage-v8": "^5.0.4",
-		"builtin-modules": "5.2.0",
+		"builtin-modules": "5.4.0",
 		"conventional-changelog-conventionalcommits": "^9.1.0",
 		"esbuild": "0.28.2",
 		"eslint-plugin-obsidianmd": "^0.4.2",
